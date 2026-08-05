@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { CarFront, Clock3, Moon } from 'lucide-react'
 
 type SummaryCardsProps = {
@@ -6,7 +7,7 @@ type SummaryCardsProps = {
   taxiCost: number
 }
 
-export function SummaryCards({ days, hours, taxiCost }: SummaryCardsProps) {
+export const SummaryCards = memo(function SummaryCards({ days, hours, taxiCost }: SummaryCardsProps) {
   const cards = [
     { label: '本月加班天数', value: `${days} 天`, icon: Moon, tone: 'blue' },
     { label: '累计加班时长', value: `${hours.toFixed(1)} 小时`, icon: Clock3, tone: 'orange' },
@@ -26,4 +27,4 @@ export function SummaryCards({ days, hours, taxiCost }: SummaryCardsProps) {
       ))}
     </section>
   )
-}
+})

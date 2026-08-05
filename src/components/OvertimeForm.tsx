@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { CarFront, FileText, Plus, Save, X } from 'lucide-react'
 import type { RecordFormValue } from '../types'
 import { calculateOvertimeHours, STANDARD_END_TIME } from '../overtime'
@@ -13,7 +14,7 @@ type OvertimeFormProps = {
   onCancel: () => void
 }
 
-export function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCancel }: OvertimeFormProps) {
+export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCancel }: OvertimeFormProps) {
   return (
     <section className="form-panel">
       <div className="panel-heading">
@@ -57,4 +58,4 @@ export function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCa
       <button className="primary-button" type="button" onClick={onSubmit}>{isEditing ? <Save size={17} /> : <Plus size={17} />}<span>{isEditing ? '更新记录' : '保存记录'}</span></button>
     </section>
   )
-}
+})

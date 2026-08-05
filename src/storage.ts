@@ -19,7 +19,11 @@ export function loadRecords(): OvertimeRecord[] {
 }
 
 export function saveRecords(records: OvertimeRecord[]): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
+  } catch {
+    // 浏览器禁用存储时仍保留当前页面状态，不阻塞录入流程。
+  }
 }
 
 function isRecord(value: unknown): value is OvertimeRecord {

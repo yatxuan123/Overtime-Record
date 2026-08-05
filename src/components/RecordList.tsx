@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { CarFront, Clock3, Edit3, Inbox, Trash2 } from 'lucide-react'
 import type { OvertimeRecord } from '../types'
 
@@ -5,7 +6,7 @@ type RecordListProps = { records: OvertimeRecord[]; onEdit: (record: OvertimeRec
 
 const dateFormatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
 
-export function RecordList({ records, onEdit, onDelete }: RecordListProps) {
+export const RecordList = memo(function RecordList({ records, onEdit, onDelete }: RecordListProps) {
   return (
     <section className="records-panel">
       <div className="panel-heading panel-heading--list">
@@ -27,4 +28,4 @@ export function RecordList({ records, onEdit, onDelete }: RecordListProps) {
       )}
     </section>
   )
-}
+})

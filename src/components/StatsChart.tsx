@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { buildPeriodStats, type PeriodMode } from '../overtime'
 import type { OvertimeRecord } from '../types'
 
 type StatsChartProps = { records: OvertimeRecord[]; mode: PeriodMode; referenceDate: Date; onModeChange: (mode: PeriodMode) => void }
 
-export function StatsChart({ records, mode, referenceDate, onModeChange }: StatsChartProps) {
+export const StatsChart = memo(function StatsChart({ records, mode, referenceDate, onModeChange }: StatsChartProps) {
   const stats = buildPeriodStats(records, mode, referenceDate)
   const maxHours = Math.max(...stats.map((item) => item.hours), 1)
   const totalHours = stats.reduce((sum, item) => sum + item.hours, 0)
@@ -16,4 +17,4 @@ export function StatsChart({ records, mode, referenceDate, onModeChange }: Stats
     <div className={`bar-chart bar-chart--${mode}`} aria-label={`${periodName}加班时长柱状图`}>{stats.map((item) => <div className="bar-column" key={item.date}><div className="bar-track"><div className="bar-fill" style={{ height: `${item.hours ? Math.max(8, (item.hours / maxHours) * 100) : 0}%` }} title={`${item.date}：${item.hours.toFixed(1)} 小时，打车 ¥${item.taxiCost.toFixed(0)}`} /></div><span>{item.label}</span></div>)}</div>
     <div className="chart-footnote"><BarChart3 size={14} />柱状图按每天加班时长汇总，悬停可查看打车费用</div>
   </section>
-}
+})

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ArrowUpRight, CalendarDays, Plus, TriangleAlert } from 'lucide-react'
 import { OvertimeForm } from './components/OvertimeForm'
 import { RecordList } from './components/RecordList'
@@ -27,14 +27,15 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7))
 
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records])
+  const referenceDate = useMemo(() => new Date(`${selectedMonth}-01T12:00:00`), [selectedMonth])
   const summary = useMemo(() => {
     const month = selectedMonth
     const monthly = records.filter((record) => record.date.startsWith(month))
     return { days: monthly.length, hours: monthly.reduce((sum, record) => sum + record.hours, 0), taxiCost: monthly.reduce((sum, record) => sum + (record.tookTaxi ? record.taxiCost : 0), 0) }
   }, [records])
 
-  const updateRecords = (next: OvertimeRecord[]) => { setRecords(next); saveRecords(next) }
-  const updateForm = (next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }
+  const updateRecords = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next) }, [])
+  const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
 
   const handleSubmit = () => {
     const hours = calculateOvertimeHours(form.leaveTime)
@@ -49,8 +50,9 @@ function App() {
     setForm(emptyForm()); setEditingId(null); setNotice(editingId ? '记录已更新' : '记录已保存'); window.setTimeout(() => setNotice(''), 2200)
   }
 
-  const handleEdit = (record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, leaveTime: record.leaveTime || '18:00', tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }
-  const handleDelete = (id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { updateRecords(records.filter((record) => record.id !== id)); if (editingId === id) { setEditingId(null); setForm(emptyForm()) } setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }
+  const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, leaveTime: record.leaveTime || '18:00', tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
+  const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { setRecords((current) => { const next = current.filter((record) => record.id !== id); saveRecords(next); return next }); if (editingId === id) { setEditingId(null); setForm(emptyForm()) } setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [editingId])
+  const cancelEdit = useCallback(() => { setEditingId(null); setForm(emptyForm()); setError('') }, [])
 
   const confirmOverwrite = () => { if (!pendingOverwrite) return; updateRecords(records.map((record) => record.date === pendingOverwrite.date ? { ...pendingOverwrite, id: record.id } : record)); setPendingOverwrite(null); setForm(emptyForm()); setNotice('已覆盖当天记录'); window.setTimeout(() => setNotice(''), 2200) }
 
@@ -61,8 +63,8 @@ function App() {
       <section className="hero"><div><p className="eyebrow">WORK LOG / 2026</p><h1>把每一次加班，<br /><span>记得清楚一点。</span></h1><p className="hero-copy">记录投入，也记录回家的路费。让辛苦有迹可循。</p></div><button className="outline-button" onClick={() => { setEditingId(null); setForm(emptyForm()); document.querySelector('.form-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}><Plus size={17} />新增加班</button></section>
       <SummaryCards {...summary} />
       <MonthOverview records={records} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
-      <StatsChart records={records} mode={periodMode} referenceDate={new Date(`${selectedMonth}-01T12:00:00`)} onModeChange={setPeriodMode} />
-      <div className="workspace-grid"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} onChange={updateForm} onSubmit={handleSubmit} onCancel={() => { setEditingId(null); setForm(emptyForm()); setError('') }} /><RecordList records={sortedRecords} onEdit={handleEdit} onDelete={handleDelete} /></div>
+      <StatsChart records={records} mode={periodMode} referenceDate={referenceDate} onModeChange={setPeriodMode} />
+      <div className="workspace-grid"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} onEdit={handleEdit} onDelete={handleDelete} /></div>
       {pendingOverwrite && <div className="overwrite-dialog" role="alertdialog" aria-modal="true"><div className="overwrite-dialog__icon"><TriangleAlert size={20} /></div><div><strong>这一天已经有记录</strong><p>{pendingOverwrite.date} 已经存在一笔加班记录，要覆盖原记录吗？</p><div className="overwrite-dialog__actions"><button className="secondary-button" onClick={() => setPendingOverwrite(null)}>取消</button><button className="primary-button" onClick={confirmOverwrite}>覆盖记录</button></div></div></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
       <footer className="footer-note">数据仅保存在当前浏览器 · 自动保存</footer>
