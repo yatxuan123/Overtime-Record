@@ -2,6 +2,10 @@ import type { OvertimeRecord } from './types'
 
 export const STANDARD_END_TIME = '18:00'
 
+export function localDateKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export function calculateOvertimeHours(leaveTime: string): number {
   if (!/^\d{2}:\d{2}$/.test(leaveTime)) return 0
   const [hours, minutes] = leaveTime.split(':').map(Number)

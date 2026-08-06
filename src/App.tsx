@@ -7,9 +7,9 @@ import { StatsChart } from './components/StatsChart'
 import { MonthOverview } from './components/MonthOverview'
 import { loadRecords, saveRecords } from './storage'
 import type { OvertimeRecord, RecordFormValue } from './types'
-import { calculateOvertimeHours, findRecordByDate, type PeriodMode } from './overtime'
+import { calculateOvertimeHours, findRecordByDate, localDateKey, type PeriodMode } from './overtime'
 
-const today = new Date().toISOString().slice(0, 10)
+const today = localDateKey()
 const emptyForm = (): RecordFormValue => ({ date: today, leaveTime: '18:00', tookTaxi: false, taxiCost: '', note: '' })
 
 function monthLabel(date: Date) {
