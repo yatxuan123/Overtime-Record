@@ -46,9 +46,11 @@ export function mergeEnvelopes(local: SyncEnvelope, remote: SyncEnvelope): SyncE
     ...Object.values(tombstones),
   ]
 
+  const sortedTimestamps = timestamps.sort()
+
   return {
     version: 1,
-    updatedAt: timestamps.sort().at(-1) ?? local.updatedAt,
+    updatedAt: sortedTimestamps[sortedTimestamps.length - 1] ?? local.updatedAt,
     records: sortRecords([...records.values()]),
     tombstones,
   }
