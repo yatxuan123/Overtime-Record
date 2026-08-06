@@ -28,6 +28,14 @@ export function createSyncController(options: FactoryOptions): SyncController {
   })
 }
 
+export function markChangedRecords(records: OvertimeRecord[], previous: SyncRecord[], updatedAt: string): SyncRecord[] {
+  return records.map((record) => {
+    const prior = previous.find((item) => item.id === record.id)
+    if (prior && sameRecordContent(prior, record)) return { ...record, updatedAt: prior.updatedAt }
+    return { ...record, updatedAt }
+  })
+}
+
 export type CloudSyncView = {
   records: SyncRecord[]
   status: SyncStatus
@@ -92,8 +100,10 @@ export function useCloudSync(): CloudSyncView {
   }, [bindController, localStorageRef, sessionStorageRef, workerUrl])
 
   const replaceRecords = useCallback(async (records: OvertimeRecord[]) => {
+    const controller = controllerRef.current
+    if (!controller) return
     const updatedAt = new Date().toISOString()
-    await controllerRef.current?.replaceRecords(records.map((record) => ({ ...record, updatedAt })))
+    await controller.replaceRecords(markChangedRecords(records, controller.getState().cache.envelope.records, updatedAt))
   }, [])
 
   return {
@@ -108,4 +118,8 @@ export function useCloudSync(): CloudSyncView {
     replaceRecords,
     deleteRecord: (id) => controllerRef.current?.deleteRecord(id) ?? Promise.resolve(),
   }
+}
+
+function sameRecordContent(left: OvertimeRecord, right: OvertimeRecord): boolean {
+  return left.id === right.id && left.date === right.date && left.leaveTime === right.leaveTime && left.hours === right.hours && left.tookTaxi === right.tookTaxi && left.taxiCost === right.taxiCost && left.note === right.note
 }
