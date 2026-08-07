@@ -32,4 +32,8 @@ describe('GitHub remote JSON storage', () => {
   it('surfaces GitHub authorization errors without storing the token', async () => {
     await expect(saveRemoteRecords(records, 'token', async () => Response.json({ message: 'Bad credentials' }, { status: 401 }))).rejects.toThrow('GitHub Token 无效')
   })
+
+  it('includes GitHub permission details for forbidden saves', async () => {
+    await expect(saveRemoteRecords(records, 'token', async () => Response.json({ message: 'Resource not accessible by personal access token' }, { status: 403 }))).rejects.toThrow('GitHub 拒绝写入：Resource not accessible by personal access token')
+  })
 })

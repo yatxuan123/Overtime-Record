@@ -25,6 +25,7 @@ export async function saveRemoteRecords(records: OvertimeRecord[], token: string
   }
   const currentResponse = await fetchImpl(apiUrl, { headers })
   if (currentResponse.status === 401) throw new Error('GitHub Token 无效')
+  if (currentResponse.status === 403) throw new Error(`GitHub 拒绝写入：${await githubMessage(currentResponse)}`)
   if (!currentResponse.ok && currentResponse.status !== 404) throw new Error(`GitHub 文件读取失败（HTTP ${currentResponse.status}）`)
   const current: unknown = currentResponse.status === 404 ? null : await currentResponse.json()
   const sha = current && typeof current === 'object' && typeof (current as { sha?: unknown }).sha === 'string' ? (current as { sha: string }).sha : undefined
@@ -34,6 +35,7 @@ export async function saveRemoteRecords(records: OvertimeRecord[], token: string
     body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify(records, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
   })
   if (response.status === 401) throw new Error('GitHub Token 无效')
+  if (response.status === 403) throw new Error(`GitHub 拒绝写入：${await githubMessage(response)}`)
   if (response.status === 409) throw new Error('GitHub 文件已被其他操作更新，请重新保存')
   if (!response.ok) throw new Error(`GitHub 文件保存失败（HTTP ${response.status}）`)
   const saved: unknown = await response.json()
@@ -55,6 +57,16 @@ function encodeBase64(value: string): string {
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)
   return btoa(binary)
+}
+
+async function githubMessage(response: Response): Promise<string> {
+  try {
+    const body: unknown = await response.json()
+    if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') return (body as { message: string }).message
+  } catch {
+    // GitHub 的错误响应通常是 JSON；非 JSON 时保留状态码作为上下文。
+  }
+  return `HTTP ${response.status}`
 }
 
 function isRecord(value: unknown): value is OvertimeRecord {
