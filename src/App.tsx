@@ -8,11 +8,11 @@ import { MonthOverview } from './components/MonthOverview'
 import { RemoteControl } from './components/RemoteControl'
 import { loadRecords, saveRecords } from './storage'
 import type { OvertimeRecord, RecordFormValue } from './types'
-import { calculateOvertimeHours, findRecordByDate, localDateKey, type PeriodMode } from './overtime'
+import { buildMonthSummary, calculateOvertimeHours, findRecordByDate, localDateKey, selectableLeaveTimes, STANDARD_END_TIME, type PeriodMode } from './overtime'
 import { DEFAULT_REMOTE_URL, loadRemoteRecords, saveRemoteRecords } from './remote'
 
 const today = localDateKey()
-const emptyForm = (): RecordFormValue => ({ date: today, leaveTime: '18:00', tookTaxi: false, taxiCost: '', note: '' })
+const emptyForm = (): RecordFormValue => ({ date: today, leaveTime: STANDARD_END_TIME, tookTaxi: false, taxiCost: '', note: '' })
 
 function monthLabel(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' }).format(date)
@@ -31,11 +31,7 @@ function App() {
 
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records])
   const referenceDate = useMemo(() => new Date(`${selectedMonth}-01T12:00:00`), [selectedMonth])
-  const summary = useMemo(() => {
-    const month = selectedMonth
-    const monthly = records.filter((record) => record.date.startsWith(month))
-    return { days: monthly.length, hours: monthly.reduce((sum, record) => sum + record.hours, 0), taxiCost: monthly.reduce((sum, record) => sum + (record.tookTaxi ? record.taxiCost : 0), 0) }
-  }, [records])
+  const summary = useMemo(() => buildMonthSummary(records, selectedMonth), [records, selectedMonth])
 
   const updateRecords = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next) }, [])
   const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
@@ -44,7 +40,7 @@ function App() {
     const hours = calculateOvertimeHours(form.leaveTime)
     const taxiCost = form.tookTaxi ? Number(form.taxiCost || 0) : 0
     if (!form.date) return setError('请选择加班日期')
-    if (hours <= 0) return setError('实际下班时间需要晚于 18:00')
+    if (hours <= 0) return setError(`实际下班时间需要晚于 ${STANDARD_END_TIME}`)
     if (form.tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
     const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, leaveTime: form.leaveTime, hours, tookTaxi: form.tookTaxi, taxiCost, note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
@@ -53,7 +49,7 @@ function App() {
     setForm(emptyForm()); setEditingId(null); setNotice(editingId ? '记录已更新' : '记录已保存'); window.setTimeout(() => setNotice(''), 2200)
   }
 
-  const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, leaveTime: record.leaveTime || '18:00', tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
+  const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, leaveTime: selectableLeaveTimes().includes(record.leaveTime) ? record.leaveTime : STANDARD_END_TIME, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
   const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { setRecords((current) => { const next = current.filter((record) => record.id !== id); saveRecords(next); return next }); if (editingId === id) { setEditingId(null); setForm(emptyForm()) } setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [editingId])
   const cancelEdit = useCallback(() => { setEditingId(null); setForm(emptyForm()); setError('') }, [])
 

@@ -32,7 +32,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         </label>
         <label className="field">
           <span>实际下班时间</span>
-          <TimePicker value={value.leaveTime} date={value.date} onChange={(leaveTime) => onChange({ leaveTime })} />
+          <TimePicker value={value.leaveTime} onChange={(leaveTime) => onChange({ leaveTime })} />
         </label>
         <div className="field">
           <span>回家方式</span>

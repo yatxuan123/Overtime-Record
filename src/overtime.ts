@@ -1,6 +1,14 @@
 import type { OvertimeRecord } from './types'
 
-export const STANDARD_END_TIME = '18:00'
+export const STANDARD_END_TIME = '21:00'
+
+export function selectableLeaveHours(): string[] {
+  return ['21', '22', '23']
+}
+
+export function selectableLeaveTimes(): string[] {
+  return selectableLeaveHours().flatMap((hour) => ['00', '15', '30', '45'].map((minute) => `${hour}:${minute}`))
+}
 
 export function localDateKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -10,8 +18,17 @@ export function calculateOvertimeHours(leaveTime: string): number {
   if (!/^\d{2}:\d{2}$/.test(leaveTime)) return 0
   const [hours, minutes] = leaveTime.split(':').map(Number)
   const leaveMinutes = hours * 60 + minutes
-  const standardMinutes = 18 * 60
+  const standardMinutes = 21 * 60
   return Math.max(0, Math.round((leaveMinutes - standardMinutes) / 30) / 2)
+}
+
+export function buildMonthSummary(records: OvertimeRecord[], month: string): { days: number; hours: number; taxiCost: number } {
+  const monthly = records.filter((record) => record.date.startsWith(month))
+  return {
+    days: monthly.length,
+    hours: monthly.reduce((sum, record) => sum + record.hours, 0),
+    taxiCost: monthly.reduce((sum, record) => sum + (record.tookTaxi ? record.taxiCost : 0), 0),
+  }
 }
 
 export function findRecordByDate(records: OvertimeRecord[], date: string): OvertimeRecord | undefined {
@@ -19,6 +36,7 @@ export function findRecordByDate(records: OvertimeRecord[], date: string): Overt
 }
 
 export function leaveTimeFromLegacyHours(hours: number): string {
+  // 历史数据只有加班小时数，沿用旧的 18:00 基准推算，避免生成非法的 24:30 时间。
   const totalMinutes = 18 * 60 + Math.max(0, hours) * 60
   const hour = Math.floor(totalMinutes / 60).toString().padStart(2, '0')
   const minute = Math.round(totalMinutes % 60).toString().padStart(2, '0')
