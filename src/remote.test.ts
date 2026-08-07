@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_REMOTE_URL, loadRemoteRecords, saveRemoteRecords } from './remote'
 import type { OvertimeRecord } from './types'
 
-const records: OvertimeRecord[] = [{ id: '1', date: '2026-08-08', leaveTime: '21:00', hours: 3, tookTaxi: false, taxiCost: 0, note: '测试' }]
+const records: OvertimeRecord[] = [{ id: '1', date: '2026-08-08', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', note: '测试' }]
 
 describe('GitHub remote JSON storage', () => {
   it('loads public JSON only when explicitly requested', async () => {

@@ -1,5 +1,5 @@
 import type { OvertimeRecord } from './types'
-import { calculateOvertimeHours, leaveTimeFromLegacyHours } from './overtime'
+import { normalizeRecord } from './records'
 import { emptyEnvelope, normalizeEnvelope } from './sync/data'
 import type { SyncCache, SyncRecord } from './sync/types'
 
@@ -25,10 +25,7 @@ export function loadSyncCache(storage: Storage, now: string): SyncCache {
     if (!legacyRaw) return { envelope: emptyEnvelope(now), sha: null, isDirty: false }
     const legacy: unknown = JSON.parse(legacyRaw)
     if (!Array.isArray(legacy)) return { envelope: emptyEnvelope(now), sha: null, isDirty: false }
-    const records = legacy.filter(isRecord).map((item): SyncRecord => {
-      const leaveTime = item.leaveTime ?? leaveTimeFromLegacyHours(item.hours ?? 0)
-      return { ...item, leaveTime, hours: calculateOvertimeHours(leaveTime), updatedAt: now }
-    })
+    const records = legacy.filter(isRecord).map((item): SyncRecord => ({ ...item, ...normalizeRecord(item), updatedAt: now }))
     return { envelope: { version: 1, updatedAt: now, records, tombstones: {} }, sha: null, isDirty: records.length > 0 }
   } catch {
     return { envelope: emptyEnvelope(now), sha: null, isDirty: false }
@@ -77,10 +74,7 @@ export function loadRecords(): OvertimeRecord[] {
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(isRecord).map((record) => {
-      const leaveTime = record.leaveTime ?? leaveTimeFromLegacyHours(record.hours ?? 0)
-      return { ...record, leaveTime, hours: calculateOvertimeHours(leaveTime) }
-    })
+    return parsed.map(normalizeRecord).filter((record): record is OvertimeRecord => record !== null)
   } catch {
     return []
   }
@@ -95,15 +89,5 @@ export function saveRecords(records: OvertimeRecord[]): void {
 }
 
 function isRecord(value: unknown): value is OvertimeRecord {
-  if (!value || typeof value !== 'object') return false
-  const record = value as Partial<OvertimeRecord>
-  return (
-    typeof record.id === 'string' &&
-    typeof record.date === 'string' &&
-    (typeof record.hours === 'number' || typeof record.hours === 'undefined') &&
-    (typeof record.leaveTime === 'string' || typeof record.leaveTime === 'undefined') &&
-    typeof record.tookTaxi === 'boolean' &&
-    typeof record.taxiCost === 'number' &&
-    typeof record.note === 'string'
-  )
+  return normalizeRecord(value) !== null
 }

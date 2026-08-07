@@ -1,8 +1,7 @@
 import { memo } from 'react'
 import { CarFront, FileText, Plus, Save, X } from 'lucide-react'
+import { TAXI_PROVIDER_OPTIONS } from '../records'
 import type { RecordFormValue } from '../types'
-import { calculateOvertimeHours, STANDARD_END_TIME } from '../overtime'
-import { TimePicker } from './TimePicker'
 import { DatePicker } from './DatePicker'
 
 type OvertimeFormProps = {
@@ -15,6 +14,10 @@ type OvertimeFormProps = {
 }
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCancel }: OvertimeFormProps) {
+  const toggleTaxi = () => onChange(value.tookTaxi
+    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '' }
+    : { tookTaxi: true, taxiProvider: 'taxi' })
+
   return (
     <section className="form-panel">
       <div className="panel-heading">
@@ -30,29 +33,33 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
           <span>加班日期</span>
           <DatePicker value={value.date} onChange={(date) => onChange({ date })} />
         </label>
-        <label className="field">
-          <span>实际下班时间</span>
-          <TimePicker value={value.leaveTime} onChange={(leaveTime) => onChange({ leaveTime })} />
-        </label>
         <div className="field">
           <span>回家方式</span>
-          <button className={`taxi-toggle ${value.tookTaxi ? 'is-active' : ''}`} type="button" onClick={() => onChange({ tookTaxi: !value.tookTaxi, taxiCost: value.tookTaxi ? '' : value.taxiCost })} aria-pressed={value.tookTaxi}>
+          <button className={`taxi-toggle ${value.tookTaxi ? 'is-active' : ''}`} type="button" onClick={toggleTaxi} aria-pressed={value.tookTaxi}>
             <CarFront size={17} />
             <span>{value.tookTaxi ? '打车回家' : '自行回家'}</span>
             <span className="toggle-dot" />
           </button>
         </div>
-        <label className={`field ${!value.tookTaxi ? 'is-disabled' : ''}`}>
+        {value.tookTaxi && <label className="field">
+          <span>打车方式</span>
+          <select className="select-input" value={value.taxiProvider} onChange={(event) => onChange({ taxiProvider: event.target.value as RecordFormValue['taxiProvider'], taxiProviderOther: event.target.value === 'other' ? value.taxiProviderOther : '' })}>
+            {TAXI_PROVIDER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>}
+        {value.tookTaxi && <label className="field">
           <span>打车费用 <em>元</em></span>
-          <div className="input-wrap"><span className="currency">¥</span><input type="number" min="0" step="1" placeholder="0" value={value.taxiCost} disabled={!value.tookTaxi} onChange={(event) => onChange({ taxiCost: event.target.value })} /></div>
-        </label>
+          <div className="input-wrap"><span className="currency">¥</span><input type="number" min="0" step="1" placeholder="0" value={value.taxiCost} onChange={(event) => onChange({ taxiCost: event.target.value })} /></div>
+        </label>}
+        {value.tookTaxi && value.taxiProvider === 'other' && <label className="field field--full">
+          <span>其他打车方式</span>
+          <div className="input-wrap"><input type="text" placeholder="例如：顺风车、网约车" value={value.taxiProviderOther} onChange={(event) => onChange({ taxiProviderOther: event.target.value })} /></div>
+        </label>}
         <label className="field field--full">
           <span>备注 <em>可选</em></span>
           <div className="input-wrap input-wrap--textarea"><FileText size={17} /><textarea rows={3} placeholder="记录项目、原因或其他备注" value={value.note} onChange={(event) => onChange({ note: event.target.value })} /></div>
         </label>
       </div>
-
-      <div className="overtime-preview"><span>自动计算加班时长</span><strong>{calculateOvertimeHours(value.leaveTime).toFixed(1)} 小时</strong><small>按正常下班时间 {STANDARD_END_TIME} 计算</small></div>
 
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-button" type="button" onClick={onSubmit}>{isEditing ? <Save size={17} /> : <Plus size={17} />}<span>{isEditing ? '更新记录' : '保存记录'}</span></button>

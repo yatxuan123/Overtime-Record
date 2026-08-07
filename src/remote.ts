@@ -1,4 +1,5 @@
 import type { OvertimeRecord } from './types'
+import { normalizeRecord } from './records'
 
 export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json'
 
@@ -9,8 +10,8 @@ export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImp
   if (response.status === 404) return []
   if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
   const data: unknown = await response.json()
-  if (Array.isArray(data)) return data.filter(isRecord)
-  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return (data as { records: unknown[] }).records.filter(isRecord)
+  if (Array.isArray(data)) return normalizeRecords(data)
+  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return normalizeRecords((data as { records: unknown[] }).records)
   throw new Error('远程 JSON 格式无效')
 }
 
@@ -69,8 +70,6 @@ async function githubMessage(response: Response): Promise<string> {
   return `HTTP ${response.status}`
 }
 
-function isRecord(value: unknown): value is OvertimeRecord {
-  if (!value || typeof value !== 'object') return false
-  const record = value as Partial<OvertimeRecord>
-  return typeof record.id === 'string' && typeof record.date === 'string' && typeof record.leaveTime === 'string' && typeof record.hours === 'number' && typeof record.tookTaxi === 'boolean' && typeof record.taxiCost === 'number' && typeof record.note === 'string'
+function normalizeRecords(values: unknown[]): OvertimeRecord[] {
+  return values.map(normalizeRecord).filter((record): record is OvertimeRecord => record !== null)
 }

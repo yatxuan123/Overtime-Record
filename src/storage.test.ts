@@ -32,7 +32,7 @@ describe('sync storage', () => {
 
     expect(cache.isDirty).toBe(true)
     expect(cache.sha).toBeNull()
-    expect(cache.envelope.records[0]).toMatchObject({ id: 'legacy', leaveTime: '21:30', updatedAt: '2026-08-06T10:00:00.000Z' })
+    expect(cache.envelope.records[0]).toMatchObject({ id: 'legacy', taxiProvider: 'taxi', updatedAt: '2026-08-06T10:00:00.000Z' })
     expect(storage.getItem('overtime-records-v1')).not.toBeNull()
   })
 

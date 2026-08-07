@@ -74,11 +74,11 @@ function isSyncRecord(value: unknown): value is SyncRecord {
   return (
     typeof record.id === 'string' &&
     typeof record.date === 'string' &&
-    typeof record.leaveTime === 'string' &&
-    typeof record.hours === 'number' &&
     typeof record.tookTaxi === 'boolean' &&
     typeof record.taxiCost === 'number' &&
     typeof record.note === 'string' &&
+    (typeof record.taxiProvider === 'undefined' || typeof record.taxiProvider === 'string') &&
+    (typeof record.taxiProviderOther === 'undefined' || typeof record.taxiProviderOther === 'string') &&
     isTimestamp(record.updatedAt)
   )
 }

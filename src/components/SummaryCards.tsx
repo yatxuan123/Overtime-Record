@@ -1,17 +1,18 @@
 import { memo } from 'react'
-import { CarFront, Clock3, Moon } from 'lucide-react'
+import { CarFront, Moon, WalletCards } from 'lucide-react'
 
 type SummaryCardsProps = {
   days: number
-  hours: number
+  taxiDays: number
   taxiCost: number
+  periodLabel: string
 }
 
-export const SummaryCards = memo(function SummaryCards({ days, hours, taxiCost }: SummaryCardsProps) {
+export const SummaryCards = memo(function SummaryCards({ days, taxiDays, taxiCost, periodLabel }: SummaryCardsProps) {
   const cards = [
-    { label: '本月加班天数', value: `${days} 天`, icon: Moon, tone: 'blue' },
-    { label: '累计加班时长', value: `${hours.toFixed(1)} 小时`, icon: Clock3, tone: 'orange' },
-    { label: '打车总费用', value: `¥${taxiCost.toFixed(0)}`, icon: CarFront, tone: 'green' },
+    { label: `${periodLabel}加班天数`, value: `${days} 天`, icon: Moon, tone: 'blue' },
+    { label: `${periodLabel}打车天数`, value: `${taxiDays} 天`, icon: CarFront, tone: 'orange' },
+    { label: `${periodLabel}打车费用`, value: `¥${taxiCost.toFixed(0)}`, icon: WalletCards, tone: 'green' },
   ] as const
 
   return (
