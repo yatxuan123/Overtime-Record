@@ -1,65 +1,74 @@
 [
   {
+    "id": "220a52e4-11e6-48b0-87c2-0bfd5d3e69d6",
+    "date": "2026-08-05",
+    "tookTaxi": true,
+    "taxiCost": 102,
+    "taxiProvider": "didi",
+    "taxiProviderOther": "",
+    "note": ""
+  },
+  {
     "id": "d7abdd7e-2078-480f-9eef-f9e80007e418",
     "date": "2026-07-03",
-    "leaveTime": "21:00",
-    "hours": 3,
     "tookTaxi": false,
     "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
     "note": ""
   },
   {
     "id": "3e9392ba-18d8-4fa5-a421-d0e2ad30938a",
     "date": "2026-07-27",
-    "leaveTime": "21:00",
-    "hours": 3,
     "tookTaxi": false,
     "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
     "note": ""
   },
   {
     "id": "06775d30-889a-4166-888a-ab528fdae760",
     "date": "2026-07-29",
-    "leaveTime": "22:00",
-    "hours": 4,
     "tookTaxi": false,
     "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
     "note": ""
   },
   {
     "id": "8e7f3552-7b91-4838-adad-6ac4324a7945",
     "date": "2026-07-10",
-    "leaveTime": "22:00",
-    "hours": 4,
     "tookTaxi": false,
     "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
     "note": ""
   },
   {
     "id": "5aba3ff6-2a3a-4ddc-bc7e-33036960d907",
     "date": "2026-07-09",
-    "leaveTime": "22:00",
-    "hours": 4,
     "tookTaxi": false,
     "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
     "note": ""
   },
   {
     "id": "2f589f3a-ba01-4e51-984a-a480a37e89db",
     "date": "2026-07-21",
-    "leaveTime": "22:00",
-    "hours": 4,
     "tookTaxi": true,
     "taxiCost": 53.4,
+    "taxiProvider": "taxi",
+    "taxiProviderOther": "",
     "note": "滴滴"
   },
   {
     "id": "6d1de833-938e-4181-a27a-4eb7184794cd",
     "date": "2026-07-15",
-    "leaveTime": "22:00",
-    "hours": 4,
     "tookTaxi": true,
     "taxiCost": 57,
+    "taxiProvider": "taxi",
+    "taxiProviderOther": "",
     "note": "的士"
   }
 ]
