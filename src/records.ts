@@ -10,12 +10,21 @@ export const TAXI_PROVIDER_OPTIONS: ReadonlyArray<{ value: Exclude<TaxiProvider,
 export type RecordSummary = { days: number; taxiDays: number; taxiCost: number }
 
 export function buildRecordSummary(records: OvertimeRecord[], period: string): RecordSummary {
-  const filtered = records.filter((record) => record.date.startsWith(period))
+  const filtered = filterRecordsByPeriod(records, period)
   return {
     days: filtered.length,
     taxiDays: filtered.filter((record) => record.tookTaxi).length,
     taxiCost: filtered.reduce((sum, record) => sum + (record.tookTaxi ? record.taxiCost : 0), 0),
   }
+}
+
+export function filterRecordsByPeriod(records: OvertimeRecord[], period: string): OvertimeRecord[] {
+  return records.filter((record) => record.date.startsWith(period))
+}
+
+export function paginateRecords(records: OvertimeRecord[], page: number, pageSize: number): OvertimeRecord[] {
+  const start = Math.max(0, page - 1) * pageSize
+  return records.slice(start, start + pageSize)
 }
 
 export function normalizeRecord(value: unknown): OvertimeRecord | null {

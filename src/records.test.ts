@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, normalizeRecord, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, paginateRecords, normalizeRecord, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -21,6 +21,24 @@ describe('record data', () => {
     ]
 
     expect(buildRecordSummary(records, '2026')).toEqual({ days: 2, taxiDays: 1, taxiCost: 20 })
+  })
+
+  it('filters details by the selected month or year', () => {
+    const records: OvertimeRecord[] = [
+      { id: '1', date: '2026-07-01', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: '2', date: '2026-08-01', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: '3', date: '2025-08-01', tookTaxi: false, taxiCost: 0, note: '' },
+    ]
+
+    expect(filterRecordsByPeriod(records, '2026-08').map((record) => record.id)).toEqual(['2'])
+    expect(filterRecordsByPeriod(records, '2026').map((record) => record.id)).toEqual(['1', '2'])
+  })
+
+  it('paginates the filtered detail records', () => {
+    const records: OvertimeRecord[] = Array.from({ length: 10 }, (_, index) => ({ id: String(index), date: `2026-08-${String(index + 1).padStart(2, '0')}`, tookTaxi: false, taxiCost: 0, note: '' }))
+
+    expect(paginateRecords(records, 1, 8).map((record) => record.id)).toHaveLength(8)
+    expect(paginateRecords(records, 2, 8).map((record) => record.id)).toEqual(['8', '9'])
   })
 
   it('converts old records into the simplified format', () => {

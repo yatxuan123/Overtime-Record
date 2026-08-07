@@ -30,7 +30,9 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7))
 
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records])
-  const summary = useMemo(() => buildRecordSummary(records, overviewMode === 'year' ? selectedMonth.slice(0, 4) : selectedMonth), [overviewMode, records, selectedMonth])
+  const selectedPeriod = overviewMode === 'year' ? selectedMonth.slice(0, 4) : selectedMonth
+  const periodLabel = overviewMode === 'year' ? `${selectedPeriod}年` : `${selectedPeriod.slice(0, 4)}年${Number(selectedPeriod.slice(5, 7))}月`
+  const summary = useMemo(() => buildRecordSummary(records, selectedPeriod), [records, selectedPeriod])
 
   const updateRecords = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next) }, [])
   const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
@@ -65,7 +67,7 @@ function App() {
       <section className="hero"><div><p className="eyebrow">WORK LOG / 2026</p><h1>把每一次加班，<br /><span>记得清楚一点。</span></h1><p className="hero-copy">记录投入，也记录回家的路费。让辛苦有迹可循。</p></div><button className="outline-button" onClick={() => { setEditingId(null); setForm(emptyForm()); document.querySelector('.form-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}><Plus size={17} />新增加班</button></section>
       <SummaryCards {...summary} periodLabel={overviewMode === 'year' ? '本年' : '本月'} />
       <MonthOverview records={records} selectedMonth={selectedMonth} mode={overviewMode} onMonthChange={setSelectedMonth} onModeChange={setOverviewMode} />
-      <div className="workspace-grid"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} onEdit={handleEdit} onDelete={handleDelete} /></div>
+      <div className="workspace-grid"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} onEdit={handleEdit} onDelete={handleDelete} /></div>
       {pendingOverwrite && <div className="overwrite-dialog" role="alertdialog" aria-modal="true"><div className="overwrite-dialog__icon"><TriangleAlert size={20} /></div><div><strong>这一天已经有记录</strong><p>{pendingOverwrite.date} 已经存在一笔加班记录，要覆盖原记录吗？</p><div className="overwrite-dialog__actions"><button className="secondary-button" onClick={() => setPendingOverwrite(null)}>取消</button><button className="primary-button" onClick={confirmOverwrite}>覆盖记录</button></div></div></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
       <footer className="footer-note">{remoteMessage || '数据保存在当前浏览器 · GitHub 仅在手动点击时访问'}</footer>
