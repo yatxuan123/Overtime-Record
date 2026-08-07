@@ -1,5 +1,14 @@
 [
   {
+    "id": "d7abdd7e-2078-480f-9eef-f9e80007e418",
+    "date": "2026-07-03",
+    "leaveTime": "21:00",
+    "hours": 3,
+    "tookTaxi": false,
+    "taxiCost": 0,
+    "note": ""
+  },
+  {
     "id": "3e9392ba-18d8-4fa5-a421-d0e2ad30938a",
     "date": "2026-07-27",
     "leaveTime": "21:00",
