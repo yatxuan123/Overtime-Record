@@ -5,7 +5,7 @@ import { emptyEnvelope } from '../../src/sync/data'
 const now = '2026-08-06T10:00:00.000Z'
 const env: Env = {
   GITHUB_TOKEN: 'github-secret', SYNC_PASSWORD: 'sync-secret', GITHUB_OWNER: 'yatxuan123',
-  GITHUB_REPO: 'Overtime-Record-Data', GITHUB_BRANCH: 'main', DATA_PATH: 'data/overtime-records.json',
+  GITHUB_REPO: 'Overtime-Record', GITHUB_BRANCH: 'main', DATA_PATH: 'data/overtime-records.json',
   ALLOWED_ORIGIN: 'https://yatxuan123.github.io',
 }
 

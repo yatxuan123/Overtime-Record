@@ -68,7 +68,7 @@ function App() {
       <div className="workspace-grid"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} onEdit={handleEdit} onDelete={handleDelete} /></div>
       {pendingOverwrite && <div className="overwrite-dialog" role="alertdialog" aria-modal="true"><div className="overwrite-dialog__icon"><TriangleAlert size={20} /></div><div><strong>这一天已经有记录</strong><p>{pendingOverwrite.date} 已经存在一笔加班记录，要覆盖原记录吗？</p><div className="overwrite-dialog__actions"><button className="secondary-button" onClick={() => setPendingOverwrite(null)}>取消</button><button className="primary-button" onClick={confirmOverwrite}>覆盖记录</button></div></div></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
-      <footer className="footer-note">{syncStatus === 'synced' ? '数据已同步到 GitHub 私有仓库' : '本地缓存已保存 · ' + syncMessage}</footer>
+      <footer className="footer-note">{syncStatus === 'synced' ? '数据已同步到 GitHub 项目仓库' : '本地缓存已保存 · ' + syncMessage}</footer>
     </main>
   </div>
 }

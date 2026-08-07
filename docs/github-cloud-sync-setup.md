@@ -1,24 +1,18 @@
 # GitHub 云同步配置指南
 
-这套应用将代码部署在公开的 GitHub Pages，将加班数据保存到独立的私有仓库：
+这套应用将代码和加班数据都保存在同一个公开的 GitHub 仓库：
 
 ```text
-代码仓库：yatxuan123/Overtime-Record
-数据仓库：yatxuan123/Overtime-Record-Data（Private）
+项目仓库：yatxuan123/Overtime-Record（Public）
 Worker：Cloudflare Worker
 数据文件：data/overtime-records.json
 ```
 
-## 1. 创建私有数据仓库
+## 1. 使用当前项目仓库
 
-在 GitHub 创建新仓库：
+不需要创建第二个仓库。Worker 会在当前项目仓库中读写 `data/overtime-records.json`。
 
-- Owner：`yatxuan123`
-- Repository name：`Overtime-Record-Data`
-- Visibility：`Private`
-- 不需要初始化 README、License 或 `.gitignore`
-
-不要把加班数据文件提交到公开的 `Overtime-Record` 代码仓库。
+该文件会公开显示，Git 提交历史也会保留旧版本。不要在备注中填写账号、密码、客户隐私或其他不希望公开的内容。
 
 ## 2. 创建最小权限 GitHub Token
 
@@ -28,7 +22,7 @@ Worker：Cloudflare Worker
 
 - Resource owner：`yatxuan123`
 - Repository access：`Only select repositories`
-- 只选择：`Overtime-Record-Data`
+- 只选择：`Overtime-Record`
 - Repository permissions → Contents：`Read and write`
 - 其他权限全部保持 `No access`
 
@@ -75,7 +69,7 @@ pnpm exec wrangler deploy --config worker/wrangler.toml
 
 ```text
 GITHUB_OWNER=yatxuan123
-GITHUB_REPO=Overtime-Record-Data
+GITHUB_REPO=Overtime-Record
 GITHUB_BRANCH=main
 DATA_PATH=data/overtime-records.json
 ALLOWED_ORIGIN=https://yatxuan123.github.io
@@ -110,17 +104,17 @@ pnpm exec wrangler secret put SYNC_PASSWORD --config worker/wrangler.toml
 - 页面先使用本地缓存渲染。
 - 云端数据会被读取并合并。
 - 旧版 `localStorage` 数据会自动进入待同步状态。
-- 首次成功上传后，GitHub 私有仓库会出现 `data/overtime-records.json`。
+- 首次成功上传后，当前项目仓库会出现 `data/overtime-records.json`。
 
 同步密码只保存到当前浏览器会话的 `sessionStorage`。关闭浏览器后需要重新输入；Worker 地址会保存在本地设置中。
 
 ## 7. 验证清单
 
-- GitHub 数据仓库页面显示 `Private`。
-- `Overtime-Record-Data` 的 Contents 权限只有当前 Token 可写。
+- 项目仓库页面显示 `Public`。
+- Token 的 Contents 权限只授予 `Overtime-Record`。
 - 浏览器开发者工具中看不到 GitHub Token。
 - 新增一条记录后，Worker 状态变为“已同步”。
-- GitHub 私有仓库出现 `data/overtime-records.json`。
+- 项目仓库出现 `data/overtime-records.json`。
 - 开启飞行模式时新增记录，状态显示“待同步”；恢复联网后自动同步。
 - 在另一台设备输入 Worker 地址和同步密码，可以读取同一条记录。
 
@@ -144,4 +138,3 @@ pnpm exec wrangler secret put SYNC_PASSWORD --config worker/wrangler.toml
 | `云端服务暂时不可用` | Token、仓库名或 Worker 部署配置错误 | 检查 GitHub Token 的仓库和 Contents 权限 |
 | `有冲突` | 多设备同时保存且自动合并重试仍失败 | 点击“立即同步”后再次尝试 |
 | 页面能打开但一直待同步 | Worker CORS 或地址配置错误 | 确认 `ALLOWED_ORIGIN` 精确等于 Pages 地址 |
-
