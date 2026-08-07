@@ -1,0 +1,64 @@
+import type { OvertimeRecord } from './types'
+
+export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json'
+
+type FetchImpl = typeof fetch
+
+export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
+  const response = await fetchImpl(remoteUrl, { cache: 'no-store' })
+  if (response.status === 404) return []
+  if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
+  const data: unknown = await response.json()
+  if (Array.isArray(data)) return data.filter(isRecord)
+  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return (data as { records: unknown[] }).records.filter(isRecord)
+  throw new Error('远程 JSON 格式无效')
+}
+
+export async function saveRemoteRecords(records: OvertimeRecord[], token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL): Promise<string> {
+  if (!token.trim()) throw new Error('请输入 GitHub Token')
+  const apiUrl = toContentsApiUrl(remoteUrl)
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${token.trim()}`,
+    'Content-Type': 'application/json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
+  const currentResponse = await fetchImpl(apiUrl, { headers })
+  if (currentResponse.status === 401) throw new Error('GitHub Token 无效')
+  if (!currentResponse.ok && currentResponse.status !== 404) throw new Error(`GitHub 文件读取失败（HTTP ${currentResponse.status}）`)
+  const current: unknown = currentResponse.status === 404 ? null : await currentResponse.json()
+  const sha = current && typeof current === 'object' && typeof (current as { sha?: unknown }).sha === 'string' ? (current as { sha: string }).sha : undefined
+  const response = await fetchImpl(apiUrl, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify(records, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
+  })
+  if (response.status === 401) throw new Error('GitHub Token 无效')
+  if (response.status === 409) throw new Error('GitHub 文件已被其他操作更新，请重新保存')
+  if (!response.ok) throw new Error(`GitHub 文件保存失败（HTTP ${response.status}）`)
+  const saved: unknown = await response.json()
+  const newSha = saved && typeof saved === 'object' && (saved as { content?: unknown }).content && typeof (saved as { content: { sha?: unknown } }).content.sha === 'string' ? (saved as { content: { sha: string } }).content.sha : ''
+  if (!newSha) throw new Error('GitHub 返回了无效的保存结果')
+  return newSha
+}
+
+function toContentsApiUrl(remoteUrl: string): string {
+  const match = remoteUrl.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/)
+  if (!match) throw new Error('远程地址必须是 raw.githubusercontent.com 的 JSON 地址')
+  const [, owner, repo, branch, filePath] = match
+  const encodedPath = filePath.split('/').map(encodeURIComponent).join('/')
+  return `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`
+}
+
+function encodeBase64(value: string): string {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
+function isRecord(value: unknown): value is OvertimeRecord {
+  if (!value || typeof value !== 'object') return false
+  const record = value as Partial<OvertimeRecord>
+  return typeof record.id === 'string' && typeof record.date === 'string' && typeof record.leaveTime === 'string' && typeof record.hours === 'number' && typeof record.tookTaxi === 'boolean' && typeof record.taxiCost === 'number' && typeof record.note === 'string'
+}
