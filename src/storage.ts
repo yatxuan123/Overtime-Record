@@ -7,6 +7,7 @@ const STORAGE_KEY = 'overtime-records-v1'
 const SYNC_CACHE_KEY = 'overtime-sync-v1'
 const WORKER_URL_KEY = 'overtime-worker-url'
 const SESSION_PASSWORD_KEY = 'overtime-sync-password'
+const REMOTE_TOKEN_KEY = 'overtime-github-token'
 
 export function loadSyncCache(storage: Storage, now: string): SyncCache {
   try {
@@ -59,6 +60,15 @@ export function loadSessionPassword(storage: Storage): string {
 export function saveSessionPassword(storage: Storage, password: string): void {
   if (password) storage.setItem(SESSION_PASSWORD_KEY, password)
   else storage.removeItem(SESSION_PASSWORD_KEY)
+}
+
+export function loadRemoteToken(storage: Storage): string {
+  return storage.getItem(REMOTE_TOKEN_KEY) ?? ''
+}
+
+export function saveRemoteToken(storage: Storage, token: string): void {
+  if (token) storage.setItem(REMOTE_TOKEN_KEY, token)
+  else storage.removeItem(REMOTE_TOKEN_KEY)
 }
 
 export function loadRecords(): OvertimeRecord[] {

@@ -6,6 +6,8 @@ import {
   saveSessionPassword,
   saveSyncCache,
   saveWorkerUrl,
+  loadRemoteToken,
+  saveRemoteToken,
 } from './storage'
 import { emptyEnvelope } from './sync/data'
 
@@ -56,5 +58,13 @@ describe('sync storage', () => {
     saveSessionPassword(session, 'secret')
     expect(loadWorkerUrl(local)).toBe('https://example.workers.dev')
     expect(loadSessionPassword(session)).toBe('secret')
+  })
+
+  it('stores the GitHub token for the current browser session', () => {
+    const session = new MemoryStorage()
+    saveRemoteToken(session, 'github-token')
+    expect(loadRemoteToken(session)).toBe('github-token')
+    saveRemoteToken(session, '')
+    expect(loadRemoteToken(session)).toBe('')
   })
 })
