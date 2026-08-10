@@ -47,6 +47,10 @@ describe('record data', () => {
     })
   })
 
+  it('clears reimbursement status when no taxi cost exists', () => {
+    expect(normalizeRecord({ id: 'no-taxi', date: '2026-08-08', tookTaxi: false, taxiCost: 0, reimbursementStatus: 'paid', note: '' })?.reimbursementStatus).toBe('unsubmitted')
+  })
+
   it('offers the requested taxi provider choices', () => {
     expect(TAXI_PROVIDER_OPTIONS.map((option) => option.value)).toEqual(['taxi', 'didi', 'amap', 'other'])
   })

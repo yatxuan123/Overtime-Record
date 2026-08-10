@@ -149,6 +149,9 @@ input::placeholder, textarea::placeholder { color: #adb8ad; }
 .record-date span { display: block; color: #91a095; margin-top: 6px; font-size: 11px; white-space: nowrap; }
 .record-title { display: flex; gap: 9px; align-items: center; min-width: 0; }
 .record-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.record-edit-trigger { min-width: 0; padding: 0; color: inherit; text-align: left; border: 0; background: transparent; cursor: pointer; }
+.record-edit-trigger:hover .record-title strong { color: #a5652d; }
+.record-edit-trigger:focus-visible { outline: 2px solid #d9a15e; outline-offset: 4px; border-radius: 5px; }
 .record-badge { flex: 0 0 auto; padding: 4px 7px; color: #a5652d; background: #fff0db; border-radius: 5px; font-size: 10px; font-weight: 800; }
 .record-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 5px; font-size: 10px; font-weight: 800; }
 .record-status--unsubmitted { color: #8b6a43; background: #f5ead8; }
