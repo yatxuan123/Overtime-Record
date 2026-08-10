@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2 } from 'lucide-react'
-import { filterRecordsByPeriod, paginateRecords, taxiProviderLabel } from '../records'
+import { filterRecordsByPeriod, paginateRecords, reimbursementStatusLabel, taxiProviderLabel } from '../records'
 import type { OvertimeRecord } from '../types'
 
 type RecordListProps = { records: OvertimeRecord[]; period: string; periodLabel: string; onEdit: (record: OvertimeRecord) => void; onDelete: (id: string) => void }
@@ -31,7 +31,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
             {visibleRecords.map((record) => (
               <article className="record-row" key={record.id}>
                 <div className="record-date"><strong>{new Date(`${record.date}T00:00:00`).getDate().toString().padStart(2, '0')}</strong><span>{dateFormatter.format(new Date(`${record.date}T00:00:00`)).replace(/^\d+月/, '')}</span></div>
-                <div className="record-main"><div className="record-title"><strong>{record.note || '未填写备注'}</strong><span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span></div><div className="record-meta"><span>加班日</span>{record.tookTaxi && <span><CarFront size={14} />¥{record.taxiCost.toFixed(0)}</span>}</div></div>
+                <div className="record-main"><div className="record-title"><strong>{record.note || '未填写备注'}</strong><span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span><span className={`record-status record-status--${record.reimbursementStatus || 'unsubmitted'}`}>{reimbursementStatusLabel(record.reimbursementStatus)}</span></div><div className="record-meta"><span>加班日</span>{record.tookTaxi && <span><CarFront size={14} />¥{record.taxiCost.toFixed(0)}</span>}</div></div>
                 <div className="row-actions"><button className="icon-button" onClick={() => onEdit(record)} aria-label="编辑记录" title="编辑记录"><Edit3 size={16} /></button><button className="icon-button icon-button--danger" onClick={() => onDelete(record.id)} aria-label="删除记录" title="删除记录"><Trash2 size={16} /></button></div>
               </article>
             ))}

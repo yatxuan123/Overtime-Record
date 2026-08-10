@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { CarFront, FileText, Plus, Save, X } from 'lucide-react'
-import { TAXI_PROVIDER_OPTIONS } from '../records'
+import { REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
 import type { RecordFormValue } from '../types'
 import { DatePicker } from './DatePicker'
 
@@ -15,8 +15,8 @@ type OvertimeFormProps = {
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCancel }: OvertimeFormProps) {
   const toggleTaxi = () => onChange(value.tookTaxi
-    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '' }
-    : { tookTaxi: true, taxiProvider: 'taxi' })
+    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }
+    : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted' })
 
   return (
     <section className="form-panel">
@@ -41,12 +41,12 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
             <span className="toggle-dot" />
           </button>
         </div>
-        {value.tookTaxi && <label className="field">
-          <span>打车方式</span>
-          <select className="select-input" value={value.taxiProvider} onChange={(event) => onChange({ taxiProvider: event.target.value as RecordFormValue['taxiProvider'], taxiProviderOther: event.target.value === 'other' ? value.taxiProviderOther : '' })}>
-            {TAXI_PROVIDER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>}
+        {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
+          <legend>打车方式</legend>
+          <div className="option-radio-group">
+            {TAXI_PROVIDER_OPTIONS.map((option) => <label className={`option-radio ${value.taxiProvider === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="taxi-provider" value={option.value} checked={value.taxiProvider === option.value} onChange={() => onChange({ taxiProvider: option.value, taxiProviderOther: option.value === 'other' ? value.taxiProviderOther : '' })} /><span>{option.label}</span></label>)}
+          </div>
+        </fieldset>}
         {value.tookTaxi && <label className="field">
           <span>打车费用 <em>元</em></span>
           <div className="input-wrap"><span className="currency">¥</span><input type="number" min="0" step="1" placeholder="0" value={value.taxiCost} onChange={(event) => onChange({ taxiCost: event.target.value })} /></div>
@@ -55,6 +55,12 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
           <span>其他打车方式</span>
           <div className="input-wrap"><input type="text" placeholder="例如：顺风车、网约车" value={value.taxiProviderOther} onChange={(event) => onChange({ taxiProviderOther: event.target.value })} /></div>
         </label>}
+        {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
+          <legend>报销状态</legend>
+          <div className="option-radio-group option-radio-group--status">
+            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value })} /><span>{option.label}</span></label>)}
+          </div>
+        </fieldset>}
         <label className="field field--full">
           <span>备注 <em>可选</em></span>
           <div className="input-wrap input-wrap--textarea"><FileText size={17} /><textarea rows={3} placeholder="记录项目、原因或其他备注" value={value.note} onChange={(event) => onChange({ note: event.target.value })} /></div>

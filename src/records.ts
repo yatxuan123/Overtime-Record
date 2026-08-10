@@ -1,10 +1,16 @@
-import type { OvertimeRecord, TaxiProvider } from './types'
+import type { OvertimeRecord, ReimbursementStatus, TaxiProvider } from './types'
 
 export const TAXI_PROVIDER_OPTIONS: ReadonlyArray<{ value: Exclude<TaxiProvider, ''>; label: string }> = [
   { value: 'taxi', label: '的士' },
   { value: 'didi', label: '滴滴' },
   { value: 'amap', label: '高德' },
   { value: 'other', label: '其他' },
+]
+
+export const REIMBURSEMENT_STATUS_OPTIONS: ReadonlyArray<{ value: ReimbursementStatus; label: string }> = [
+  { value: 'unsubmitted', label: '未申报' },
+  { value: 'submitted', label: '已申报' },
+  { value: 'paid', label: '已到账' },
 ]
 
 export type RecordSummary = { days: number; taxiDays: number; taxiCost: number }
@@ -32,6 +38,7 @@ export function normalizeRecord(value: unknown): OvertimeRecord | null {
   const record = value as Partial<OvertimeRecord>
   if (typeof record.id !== 'string' || typeof record.date !== 'string' || typeof record.tookTaxi !== 'boolean' || typeof record.taxiCost !== 'number' || !Number.isFinite(record.taxiCost) || typeof record.note !== 'string') return null
   const provider = record.taxiProvider && TAXI_PROVIDER_OPTIONS.some((option) => option.value === record.taxiProvider) ? record.taxiProvider : (record.tookTaxi ? 'taxi' : '')
+  const reimbursementStatus = record.tookTaxi && REIMBURSEMENT_STATUS_OPTIONS.some((option) => option.value === record.reimbursementStatus) ? record.reimbursementStatus : 'unsubmitted'
   return {
     id: record.id,
     date: record.date,
@@ -39,8 +46,13 @@ export function normalizeRecord(value: unknown): OvertimeRecord | null {
     taxiCost: record.tookTaxi ? Math.max(0, record.taxiCost) : 0,
     taxiProvider: provider,
     taxiProviderOther: provider === 'other' && typeof record.taxiProviderOther === 'string' ? record.taxiProviderOther : '',
+    reimbursementStatus,
     note: record.note,
   }
+}
+
+export function reimbursementStatusLabel(status?: ReimbursementStatus): string {
+  return REIMBURSEMENT_STATUS_OPTIONS.find((option) => option.value === status)?.label || '未申报'
 }
 
 export function taxiProviderLabel(record: Pick<OvertimeRecord, 'taxiProvider' | 'taxiProviderOther'>): string {

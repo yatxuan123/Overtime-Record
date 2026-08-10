@@ -121,5 +121,5 @@ export function useCloudSync(): CloudSyncView {
 }
 
 function sameRecordContent(left: OvertimeRecord, right: OvertimeRecord): boolean {
-  return left.id === right.id && left.date === right.date && left.tookTaxi === right.tookTaxi && left.taxiCost === right.taxiCost && left.taxiProvider === right.taxiProvider && left.taxiProviderOther === right.taxiProviderOther && left.note === right.note
+  return left.id === right.id && left.date === right.date && left.tookTaxi === right.tookTaxi && left.taxiCost === right.taxiCost && left.taxiProvider === right.taxiProvider && left.taxiProviderOther === right.taxiProviderOther && left.reimbursementStatus === right.reimbursementStatus && left.note === right.note
 }

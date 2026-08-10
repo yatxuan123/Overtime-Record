@@ -12,7 +12,7 @@ describe('GitHub remote JSON storage', () => {
       return Response.json(records)
     })
     expect(requestedUrl).toBe(DEFAULT_REMOTE_URL)
-    expect(loaded).toEqual(records)
+    expect(loaded).toEqual([{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }])
   })
 
   it('reads the current file SHA and commits JSON through GitHub Contents API', async () => {

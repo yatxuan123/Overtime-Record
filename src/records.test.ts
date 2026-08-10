@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, paginateRecords, normalizeRecord, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -43,11 +43,15 @@ describe('record data', () => {
 
   it('converts old records into the simplified format', () => {
     expect(normalizeRecord({ id: 'legacy', date: '2026-08-08', leaveTime: '22:00', hours: 1, tookTaxi: true, taxiCost: 36, note: '旧记录' })).toEqual({
-      id: 'legacy', date: '2026-08-08', tookTaxi: true, taxiCost: 36, taxiProvider: 'taxi', taxiProviderOther: '', note: '旧记录',
+      id: 'legacy', date: '2026-08-08', tookTaxi: true, taxiCost: 36, taxiProvider: 'taxi', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '旧记录',
     })
   })
 
   it('offers the requested taxi provider choices', () => {
     expect(TAXI_PROVIDER_OPTIONS.map((option) => option.value)).toEqual(['taxi', 'didi', 'amap', 'other'])
+  })
+
+  it('offers the three reimbursement states', () => {
+    expect(REIMBURSEMENT_STATUS_OPTIONS.map((option) => option.label)).toEqual(['未申报', '已申报', '已到账'])
   })
 })

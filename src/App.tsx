@@ -12,7 +12,7 @@ import { findRecordByDate, localDateKey } from './overtime'
 import { DEFAULT_REMOTE_URL, loadRemoteRecords, saveRemoteRecords } from './remote'
 
 const today = localDateKey()
-const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', note: '' })
+const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '' })
 
 function monthLabel(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' }).format(date)
@@ -43,14 +43,14 @@ function App() {
     if (form.tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
     if (form.tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
     if (form.tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
-    const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', note: form.note.trim() }
+    const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
     updateRecords(editingId ? records.map((item) => item.id === editingId ? record : item) : [record, ...records])
     setForm(emptyForm()); setEditingId(null); setNotice(editingId ? '记录已更新' : '记录已保存'); window.setTimeout(() => setNotice(''), 2200)
   }
 
-  const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
+  const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', note: record.note }); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
   const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { setRecords((current) => { const next = current.filter((record) => record.id !== id); saveRecords(next); return next }); if (editingId === id) { setEditingId(null); setForm(emptyForm()) } setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [editingId])
   const cancelEdit = useCallback(() => { setEditingId(null); setForm(emptyForm()); setError('') }, [])
 
