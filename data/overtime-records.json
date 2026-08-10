@@ -6,6 +6,7 @@
     "taxiCost": 102,
     "taxiProvider": "didi",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -15,6 +16,7 @@
     "taxiCost": 0,
     "taxiProvider": "",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -24,6 +26,7 @@
     "taxiCost": 0,
     "taxiProvider": "",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -33,6 +36,7 @@
     "taxiCost": 0,
     "taxiProvider": "",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -42,6 +46,7 @@
     "taxiCost": 0,
     "taxiProvider": "",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -51,6 +56,7 @@
     "taxiCost": 0,
     "taxiProvider": "",
     "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
     "note": ""
   },
   {
@@ -60,6 +66,7 @@
     "taxiCost": 53.4,
     "taxiProvider": "taxi",
     "taxiProviderOther": "",
+    "reimbursementStatus": "submitted",
     "note": "滴滴"
   },
   {
@@ -69,6 +76,7 @@
     "taxiCost": 57,
     "taxiProvider": "taxi",
     "taxiProviderOther": "",
+    "reimbursementStatus": "paid",
     "note": "的士"
   }
 ]
