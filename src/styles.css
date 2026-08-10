@@ -52,7 +52,9 @@ h1 span { color: #e8b46b; }
 .calendar-grid--head { margin-top: 17px; color: #97a3af; font-size: 11px; font-weight: 800; text-align: center; }
 .calendar-grid--overview { gap: 7px; }
 .calendar-grid--overview:not(.calendar-grid--head) { margin-top: 7px; }
-.overview-day { min-height: 64px; padding: 9px 10px; border: 1px solid #edf1ed; border-radius: 9px; background: #fbfcfa; }
+.overview-day { min-height: 64px; padding: 9px 10px; color: inherit; text-align: left; border: 1px solid #edf1ed; border-radius: 9px; background: #fbfcfa; cursor: pointer; }
+.overview-day:hover { border-color: #d9a15e; background: #fffaf1; }
+.overview-day:focus-visible { outline: 2px solid #d9a15e; outline-offset: 2px; }
 .overview-day.has-record { border-color: #f2ce9e; background: #fff5e8; box-shadow: inset 0 0 0 1px rgba(211, 154, 86, .14); }
 .overview-day strong { display: block; font-family: 'DM Mono', monospace; font-size: 14px; }
 .overview-day__meta { display: flex; flex-direction: column; gap: 3px; margin-top: 9px; color: #ad7b45; font-family: 'DM Mono', monospace; font-size: 10px; }
