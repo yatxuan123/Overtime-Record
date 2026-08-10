@@ -8,18 +8,19 @@ type OvertimeFormProps = {
   value: RecordFormValue
   isEditing: boolean
   error: string
+  embedded?: boolean
   onChange: (next: Partial<RecordFormValue>) => void
   onSubmit: () => void
   onCancel: () => void
 }
 
-export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, onChange, onSubmit, onCancel }: OvertimeFormProps) {
+export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit, onCancel }: OvertimeFormProps) {
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted' })
 
   return (
-    <section className="form-panel">
+    <section className={`form-panel ${embedded ? 'form-panel--embedded' : ''}`}>
       <div className="panel-heading">
         <div>
           <span className="section-kicker">记录一笔</span>
