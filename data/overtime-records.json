@@ -1,5 +1,15 @@
 [
   {
+    "id": "915b06a3-443d-42f0-a3c3-c1f0e1d34005",
+    "date": "2026-08-11",
+    "tookTaxi": false,
+    "taxiCost": 0,
+    "taxiProvider": "",
+    "taxiProviderOther": "",
+    "reimbursementStatus": "unsubmitted",
+    "note": ""
+  },
+  {
     "id": "220a52e4-11e6-48b0-87c2-0bfd5d3e69d6",
     "date": "2026-08-05",
     "tookTaxi": true,
