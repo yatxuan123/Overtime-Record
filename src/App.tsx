@@ -58,6 +58,7 @@ function App() {
 
   const updateRecords = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next) }, [])
   const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
+  const closeRecordsModal = useCallback(() => { setIsRecordsModalOpen(false); setEditingId(null); setForm(emptyForm()); setError(''); setPendingOverwrite(null) }, [])
 
   const handleSubmit = () => {
     const taxiCost = form.tookTaxi ? Number(form.taxiCost || 0) : 0
@@ -68,8 +69,16 @@ function App() {
     const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
-    updateRecords(editingId ? records.map((item) => item.id === editingId ? record : item) : [record, ...records])
-    setForm(emptyForm()); setEditingId(null); setNotice(editingId ? '记录已更新' : '记录已保存'); window.setTimeout(() => setNotice(''), 2200)
+    if (editingId) {
+      updateRecords(records.map((item) => item.id === editingId ? record : item))
+      closeRecordsModal()
+      setNotice('记录已更新')
+    } else {
+      updateRecords([record, ...records])
+      setForm(emptyForm())
+      setNotice('记录已保存')
+    }
+    window.setTimeout(() => setNotice(''), 2200)
   }
 
   const handleEdit = useCallback((record: OvertimeRecord) => { setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', note: record.note }); setIsRecordsModalOpen(true) }, [])
@@ -79,9 +88,14 @@ function App() {
     setForm({ ...emptyForm(), date })
     setIsRecordsModalOpen(true)
   }, [handleEdit])
-  const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { setRecords((current) => { const next = current.filter((record) => record.id !== id); saveRecords(next); return next }); if (editingId === id) { setEditingId(null); setForm(emptyForm()) } setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [editingId])
-  const cancelEdit = useCallback(() => { setEditingId(null); setForm(emptyForm()); setError('') }, [])
-  const closeRecordsModal = useCallback(() => { setIsRecordsModalOpen(false); setEditingId(null); setForm(emptyForm()); setError(''); setPendingOverwrite(null) }, [])
+  const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { setRecords((current) => { const next = current.filter((record) => record.id !== id); saveRecords(next); return next }); if (editingId === id) closeRecordsModal(); setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [closeRecordsModal, editingId])
+
+  useEffect(() => {
+    if (!isRecordsModalOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [isRecordsModalOpen])
 
   const loadRemote = useCallback(() => loadRemoteRecords(DEFAULT_REMOTE_URL), [])
   const handleRemoteLoaded = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next); setRemoteMessage(`已读取 ${next.length} 条 GitHub 记录`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
@@ -96,7 +110,7 @@ function App() {
       <section className="hero"><div><p className="eyebrow">WORK LOG / 2026</p><h1>把每一次加班，<br /><span>记得清楚一点。</span></h1><p className="hero-copy">记录投入，也记录回家的路费。让辛苦有迹可循。</p></div><button className="outline-button" disabled={isInitialLoading} onClick={() => { setEditingId(null); setForm(emptyForm()); setIsRecordsModalOpen(true) }}><Plus size={17} />{isInitialLoading ? '读取中' : '新增加班'}</button></section>
       <SummaryCards {...summary} periodLabel={overviewMode === 'year' ? '本年' : '本月'} />
       <MonthOverview records={records} selectedMonth={selectedMonth} mode={overviewMode} onMonthChange={setSelectedMonth} onModeChange={setOverviewMode} onDateSelect={handleCalendarDateSelect} />
-      {isRecordsModalOpen && <div className="records-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeRecordsModal() }}><section className="records-modal" role="dialog" aria-modal="true" aria-labelledby="records-modal-title"><header className="records-modal__header"><div><span className="section-kicker">记录管理</span><h2 id="records-modal-title">{editingId ? '编辑加班记录' : '新增加班记录'}</h2></div><button className="icon-button" type="button" onClick={closeRecordsModal} aria-label="关闭记录管理" title="关闭"><X size={20} /></button></header><div className="records-modal__body"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} embedded onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} embedded onEdit={handleEdit} onDelete={handleDelete} /></div></section></div>}
+      {isRecordsModalOpen && <div className="records-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeRecordsModal() }}><section className="records-modal" role="dialog" aria-modal="true" aria-labelledby="records-modal-title"><header className="records-modal__header"><div><span className="section-kicker">记录管理</span><h2 id="records-modal-title">{editingId ? '编辑加班记录' : '新增加班记录'}</h2></div><button className="icon-button" type="button" onClick={closeRecordsModal} aria-label="关闭记录管理" title="关闭"><X size={20} /></button></header><div className="records-modal__body"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} embedded onChange={updateForm} onSubmit={handleSubmit} /><RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} embedded onEdit={handleEdit} onDelete={handleDelete} /></div></section></div>}
       {pendingOverwrite && <div className="overwrite-dialog" role="alertdialog" aria-modal="true"><div className="overwrite-dialog__icon"><TriangleAlert size={20} /></div><div><strong>这一天已经有记录</strong><p>{pendingOverwrite.date} 已经存在一笔加班记录，要覆盖原记录吗？</p><div className="overwrite-dialog__actions"><button className="secondary-button" onClick={() => setPendingOverwrite(null)}>取消</button><button className="primary-button" onClick={confirmOverwrite}>覆盖记录</button></div></div></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
       <footer className="footer-note">{remoteMessage || '数据保存在当前浏览器 · GitHub 仅在手动点击时访问'}</footer>

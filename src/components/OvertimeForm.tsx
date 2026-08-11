@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { CarFront, FileText, Plus, Save, X } from 'lucide-react'
+import { CarFront, FileText, Plus, Save } from 'lucide-react'
 import { REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
 import type { RecordFormValue } from '../types'
 import { DatePicker } from './DatePicker'
@@ -11,10 +11,9 @@ type OvertimeFormProps = {
   embedded?: boolean
   onChange: (next: Partial<RecordFormValue>) => void
   onSubmit: () => void
-  onCancel: () => void
 }
 
-export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit, onCancel }: OvertimeFormProps) {
+export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted' })
@@ -26,7 +25,6 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
           <span className="section-kicker">记录一笔</span>
           <h2>{isEditing ? '编辑加班记录' : '新增加班记录'}</h2>
         </div>
-        {isEditing && <button className="icon-button" onClick={onCancel} aria-label="取消编辑" title="取消编辑"><X size={18} /></button>}
       </div>
 
       <div className="form-fields">
