@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_REMOTE_URL, loadRemoteRecords, saveRemoteRecords } from './remote'
+import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, saveRemoteRecords } from './remote'
 import type { OvertimeRecord } from './types'
 
 const records: OvertimeRecord[] = [{ id: '1', date: '2026-08-08', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', note: '测试' }]
 
 describe('GitHub remote JSON storage', () => {
+  it('loads the local data file on startup', async () => {
+    let requestedUrl = ''
+    const loaded = await loadLocalRecords('/Overtime-Record/data/overtime-records.json', async (input) => {
+      requestedUrl = String(input)
+      return Response.json(records)
+    })
+    expect(requestedUrl).toBe('/Overtime-Record/data/overtime-records.json')
+    expect(loaded).toEqual([{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }])
+  })
+
   it('loads public JSON only when explicitly requested', async () => {
     let requestedUrl = ''
     const loaded = await loadRemoteRecords(DEFAULT_REMOTE_URL, async (input) => {

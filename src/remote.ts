@@ -2,8 +2,18 @@ import type { OvertimeRecord } from './types'
 import { normalizeRecord } from './records'
 
 export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json'
+export const DEFAULT_LOCAL_DATA_URL = `${import.meta.env.BASE_URL}data/overtime-records.json`
 
 type FetchImpl = typeof fetch
+
+export async function loadLocalRecords(localUrl = DEFAULT_LOCAL_DATA_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
+  const response = await fetchImpl(localUrl, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`本地数据读取失败（HTTP ${response.status}）`)
+  const data: unknown = await response.json()
+  if (Array.isArray(data)) return normalizeRecords(data)
+  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return normalizeRecords((data as { records: unknown[] }).records)
+  throw new Error('本地 JSON 格式无效')
+}
 
 export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
   const response = await fetchImpl(remoteUrl, { cache: 'no-store' })

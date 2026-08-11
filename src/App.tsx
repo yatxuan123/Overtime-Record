@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, CalendarDays, Plus, TriangleAlert, X } from 'lucide-react'
 import { OvertimeForm } from './components/OvertimeForm'
 import { RecordList } from './components/RecordList'
@@ -9,7 +9,7 @@ import { loadRecords, saveRecords } from './storage'
 import type { OvertimeRecord, RecordFormValue } from './types'
 import { buildRecordSummary } from './records'
 import { findRecordByDate, localDateKey } from './overtime'
-import { DEFAULT_REMOTE_URL, loadRemoteRecords, saveRemoteRecords } from './remote'
+import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, saveRemoteRecords } from './remote'
 
 const today = localDateKey()
 const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '' })
@@ -29,6 +29,27 @@ function App() {
   const [overviewMode, setOverviewMode] = useState<'month' | 'year'>('month')
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7))
   const [isRecordsModalOpen, setIsRecordsModalOpen] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const loadInitialRecords = async () => {
+      try {
+        const next = await loadLocalRecords()
+        if (cancelled) return
+        setRecords(next)
+        saveRecords(next)
+        setRemoteMessage(`已从 data/overtime-records.json 读取 ${next.length} 条记录`)
+        window.setTimeout(() => setRemoteMessage(''), 2200)
+      } catch {
+        if (!cancelled) setRemoteMessage('本地数据读取失败，已使用浏览器缓存')
+      } finally {
+        if (!cancelled) setIsInitialLoading(false)
+      }
+    }
+    void loadInitialRecords()
+    return () => { cancelled = true }
+  }, [])
 
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records])
   const selectedPeriod = overviewMode === 'year' ? selectedMonth.slice(0, 4) : selectedMonth
@@ -72,7 +93,7 @@ function App() {
     <div className="background-grid" />
     <main className="page-container">
       <header className="topbar"><div className="brand-lockup"><div className="brand-mark"><ArrowUpRight size={19} /></div><div><span className="brand-name">加班有数</span><span className="brand-subtitle">OVERTIME LOG</span></div></div><div className="topbar-tools"><div className="topbar-date"><CalendarDays size={16} />{monthLabel(new Date())}</div><RemoteControl records={records} onLoad={loadRemote} onLoaded={handleRemoteLoaded} onSave={saveRemote} /></div></header>
-      <section className="hero"><div><p className="eyebrow">WORK LOG / 2026</p><h1>把每一次加班，<br /><span>记得清楚一点。</span></h1><p className="hero-copy">记录投入，也记录回家的路费。让辛苦有迹可循。</p></div><button className="outline-button" onClick={() => { setEditingId(null); setForm(emptyForm()); setIsRecordsModalOpen(true) }}><Plus size={17} />新增加班</button></section>
+      <section className="hero"><div><p className="eyebrow">WORK LOG / 2026</p><h1>把每一次加班，<br /><span>记得清楚一点。</span></h1><p className="hero-copy">记录投入，也记录回家的路费。让辛苦有迹可循。</p></div><button className="outline-button" disabled={isInitialLoading} onClick={() => { setEditingId(null); setForm(emptyForm()); setIsRecordsModalOpen(true) }}><Plus size={17} />{isInitialLoading ? '读取中' : '新增加班'}</button></section>
       <SummaryCards {...summary} periodLabel={overviewMode === 'year' ? '本年' : '本月'} />
       <MonthOverview records={records} selectedMonth={selectedMonth} mode={overviewMode} onMonthChange={setSelectedMonth} onModeChange={setOverviewMode} onDateSelect={handleCalendarDateSelect} />
       {isRecordsModalOpen && <div className="records-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeRecordsModal() }}><section className="records-modal" role="dialog" aria-modal="true" aria-labelledby="records-modal-title"><header className="records-modal__header"><div><span className="section-kicker">记录管理</span><h2 id="records-modal-title">{editingId ? '编辑加班记录' : '新增加班记录'}</h2></div><button className="icon-button" type="button" onClick={closeRecordsModal} aria-label="关闭记录管理" title="关闭"><X size={20} /></button></header><div className="records-modal__body"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} embedded onChange={updateForm} onSubmit={handleSubmit} onCancel={cancelEdit} /><RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} embedded onEdit={handleEdit} onDelete={handleDelete} /></div></section></div>}

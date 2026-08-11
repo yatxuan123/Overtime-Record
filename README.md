@@ -53,3 +53,5 @@ pnpm run build
 项目是 Vite 静态站点，构建产物位于 `dist/`。当前 GitHub Pages 地址：
 
 <https://yatxuan123.github.io/Overtime-Record/>
+
+页面启动时会默认读取项目中的 `data/overtime-records.json`。开发服务器默认允许局域网访问，启动后终端会显示局域网地址。
