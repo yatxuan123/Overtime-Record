@@ -3,12 +3,12 @@ import { CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2 } from 'lucid
 import { filterRecordsByPeriod, paginateRecords, reimbursementStatusLabel, taxiProviderLabel } from '../records'
 import type { OvertimeRecord } from '../types'
 
-type RecordListProps = { records: OvertimeRecord[]; period: string; periodLabel: string; embedded?: boolean; onEdit: (record: OvertimeRecord) => void; onDelete: (id: string) => void }
+type RecordListProps = { records: OvertimeRecord[]; period: string; periodLabel: string; embedded?: boolean; showHeading?: boolean; onEdit: (record: OvertimeRecord) => void; onDelete: (id: string) => void }
 
 const PAGE_SIZE = 8
 const dateFormatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
 
-export const RecordList = memo(function RecordList({ records, period, periodLabel, embedded = false, onEdit, onDelete }: RecordListProps) {
+export const RecordList = memo(function RecordList({ records, period, periodLabel, embedded = false, showHeading = true, onEdit, onDelete }: RecordListProps) {
   const [page, setPage] = useState(1)
   const filteredRecords = useMemo(() => filterRecordsByPeriod(records, period), [period, records])
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE))
@@ -19,10 +19,10 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
 
   return (
     <section className={`records-panel ${embedded ? 'records-panel--embedded' : ''}`}>
-      <div className="panel-heading panel-heading--list">
+      {showHeading && <div className="panel-heading panel-heading--list">
         <div><span className="section-kicker">{periodLabel}</span><h2>加班明细</h2></div>
         <span className="record-count">{filteredRecords.length} 笔</span>
-      </div>
+      </div>}
       {filteredRecords.length === 0 ? (
         <div className="empty-state"><div className="empty-state__icon"><Inbox size={22} /></div><strong>{periodLabel}还没有加班记录</strong><p>从左侧添加这段时间的第一笔记录。</p></div>
       ) : (

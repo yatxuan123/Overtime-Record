@@ -20,12 +20,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
 
   return (
     <section className={`form-panel ${embedded ? 'form-panel--embedded' : ''}`}>
-      <div className="panel-heading">
-        <div>
-          <span className="section-kicker">记录一笔</span>
-          <h2>{isEditing ? '编辑加班记录' : '新增加班记录'}</h2>
-        </div>
-      </div>
+      {!embedded && <div className="panel-heading"><div><span className="section-kicker">记录一笔</span><h2>{isEditing ? '编辑加班记录' : '新增加班记录'}</h2></div></div>}
 
       <div className="form-fields">
         <label className="field">

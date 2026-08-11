@@ -27,5 +27,6 @@ describe('OvertimeForm', () => {
     )
 
     expect(markup).not.toContain('取消编辑')
+    expect(markup).not.toContain('记录一笔')
   })
 })
