@@ -31,5 +31,8 @@ describe('MonthOverview', () => {
     expect(markup).toContain('calendar-indicator--taxi')
     expect(markup).toContain('calendar-indicator--paid')
     expect(markup).not.toContain('overview-day__meta')
+    expect(markup).toContain('aria-label="日历显示方式"')
+    expect(markup).toContain('>状态</button>')
+    expect(markup).toContain('>文字</button>')
   })
 })
