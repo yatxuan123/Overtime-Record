@@ -2,11 +2,11 @@
   {
     "id": "915b06a3-443d-42f0-a3c3-c1f0e1d34005",
     "date": "2026-08-11",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
+    "tookTaxi": true,
+    "taxiCost": 60.5,
+    "taxiProvider": "amap",
     "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
+    "reimbursementStatus": "submitted",
     "note": ""
   },
   {
