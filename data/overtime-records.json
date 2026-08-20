@@ -1,5 +1,15 @@
 [
   {
+    "id": "8c6d7da6-3c10-47e0-8a3e-d20c6f9f4816",
+    "date": "2026-08-18",
+    "tookTaxi": true,
+    "taxiCost": 110.1,
+    "taxiProvider": "didi",
+    "taxiProviderOther": "",
+    "reimbursementStatus": "submitted",
+    "note": ""
+  },
+  {
     "id": "915b06a3-443d-42f0-a3c3-c1f0e1d34005",
     "date": "2026-08-11",
     "tookTaxi": true,
