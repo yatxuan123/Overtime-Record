@@ -97,6 +97,7 @@
     "taxiProvider": "taxi",
     "taxiProviderOther": "",
     "reimbursementStatus": "paid",
+    "reimbursementPaidAt": "2026-08-08",
     "note": "的士"
   }
 ]
