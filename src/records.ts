@@ -15,6 +15,8 @@ export const REIMBURSEMENT_STATUS_OPTIONS: ReadonlyArray<{ value: ReimbursementS
 
 export type RecordSummary = { days: number; taxiDays: number; taxiCost: number }
 
+export type PendingReimbursement = { record: OvertimeRecord; waitingDays: number }
+
 export function buildRecordSummary(records: OvertimeRecord[], period: string): RecordSummary {
   const filtered = filterRecordsByPeriod(records, period)
   return {
@@ -33,13 +35,20 @@ export function paginateRecords(records: OvertimeRecord[], page: number, pageSiz
   return records.slice(start, start + pageSize)
 }
 
+export function getPendingReimbursements(records: OvertimeRecord[], today: string): PendingReimbursement[] {
+  return records
+    .filter((record) => record.tookTaxi && record.reimbursementStatus === 'submitted' && record.date <= today)
+    .map((record) => ({ record, waitingDays: differenceInDays(record.date, today) }))
+    .sort((left, right) => right.waitingDays - left.waitingDays)
+}
+
 export function normalizeRecord(value: unknown): OvertimeRecord | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Partial<OvertimeRecord>
   if (typeof record.id !== 'string' || typeof record.date !== 'string' || typeof record.tookTaxi !== 'boolean' || typeof record.taxiCost !== 'number' || !Number.isFinite(record.taxiCost) || typeof record.note !== 'string') return null
   const provider = record.taxiProvider && TAXI_PROVIDER_OPTIONS.some((option) => option.value === record.taxiProvider) ? record.taxiProvider : (record.tookTaxi ? 'taxi' : '')
   const reimbursementStatus = record.tookTaxi && REIMBURSEMENT_STATUS_OPTIONS.some((option) => option.value === record.reimbursementStatus) ? record.reimbursementStatus : 'unsubmitted'
-  return {
+  const normalized: OvertimeRecord = {
     id: record.id,
     date: record.date,
     tookTaxi: record.tookTaxi,
@@ -49,6 +58,8 @@ export function normalizeRecord(value: unknown): OvertimeRecord | null {
     reimbursementStatus,
     note: record.note,
   }
+  if (reimbursementStatus === 'paid' && isDateKey(record.reimbursementPaidAt)) normalized.reimbursementPaidAt = record.reimbursementPaidAt
+  return normalized
 }
 
 export function reimbursementStatusLabel(status?: ReimbursementStatus): string {
@@ -58,4 +69,16 @@ export function reimbursementStatusLabel(status?: ReimbursementStatus): string {
 export function taxiProviderLabel(record: Pick<OvertimeRecord, 'taxiProvider' | 'taxiProviderOther'>): string {
   if (record.taxiProvider === 'other') return record.taxiProviderOther?.trim() || '其他'
   return TAXI_PROVIDER_OPTIONS.find((option) => option.value === record.taxiProvider)?.label || '打车'
+}
+
+function isDateKey(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+function differenceInDays(start: string, end: string): number {
+  const startTime = Date.parse(`${start}T00:00:00Z`)
+  const endTime = Date.parse(`${end}T00:00:00Z`)
+  return Math.max(0, Math.floor((endTime - startTime) / 86400000))
 }

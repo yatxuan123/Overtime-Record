@@ -15,8 +15,8 @@ type OvertimeFormProps = {
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
   const toggleTaxi = () => onChange(value.tookTaxi
-    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }
-    : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted' })
+    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
+    : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
 
   return (
     <section className={`form-panel ${embedded ? 'form-panel--embedded' : ''}`}>
@@ -52,9 +52,13 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
           <legend>报销状态</legend>
           <div className="option-radio-group option-radio-group--status">
-            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value })} /><span>{option.label}</span></label>)}
+            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: option.value === 'paid' ? value.reimbursementPaidAt : '' })} /><span>{option.label}</span></label>)}
           </div>
         </fieldset>}
+        {value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">
+          <span>到账日期</span>
+          <div className="input-wrap"><input type="date" value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
+        </label>}
         <label className="field field--full">
           <span>备注 <em>可选</em></span>
           <div className="input-wrap input-wrap--textarea"><FileText size={17} /><textarea rows={3} placeholder="记录项目、原因或其他备注" value={value.note} onChange={(event) => onChange({ note: event.target.value })} /></div>

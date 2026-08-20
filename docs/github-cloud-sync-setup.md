@@ -53,10 +53,10 @@ Token 只在创建成功页面显示一次。不要把 Token 写入代码、提�
   {
     "id": "example",
     "date": "2026-08-08",
-    "leaveTime": "21:00",
-    "hours": 3,
     "tookTaxi": false,
     "taxiCost": 0,
+    "reimbursementStatus": "unsubmitted",
+    "reimbursementPaidAt": "",
     "note": ""
   }
 ]

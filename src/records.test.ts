@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -57,5 +57,25 @@ describe('record data', () => {
 
   it('offers the three reimbursement states', () => {
     expect(REIMBURSEMENT_STATUS_OPTIONS.map((option) => option.label)).toEqual(['未申报', '已申报', '已到账'])
+  })
+
+  it('keeps the paid date for paid reimbursement records', () => {
+    expect(normalizeRecord({ id: 'paid', date: '2026-01-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-01-30', note: '' })).toMatchObject({
+      reimbursementStatus: 'paid',
+      reimbursementPaidAt: '2026-01-30',
+    })
+  })
+
+  it('finds submitted reimbursements that have not arrived and calculates waiting days', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'old', date: '2026-01-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'submitted', note: '' },
+      { id: 'recent', date: '2026-08-15', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'submitted', note: '' },
+      { id: 'paid', date: '2026-01-02', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-01-30', note: '' },
+    ]
+
+    expect(getPendingReimbursements(records, '2026-08-20')).toEqual([
+      { record: records[0], waitingDays: 231 },
+      { record: records[1], waitingDays: 5 },
+    ])
   })
 })

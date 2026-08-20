@@ -10,9 +10,10 @@ import type { OvertimeRecord, RecordFormValue } from './types'
 import { buildRecordSummary } from './records'
 import { findRecordByDate, localDateKey } from './overtime'
 import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, saveRemoteRecords } from './remote'
+import { closedRecordModalState } from './modalState'
 
 const today = localDateKey()
-const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '' })
+const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '', note: '' })
 
 function monthLabel(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' }).format(date)
@@ -70,7 +71,8 @@ function App() {
     if (form.tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
     if (form.tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
     if (form.tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
-    const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, note: form.note.trim() }
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && !form.reimbursementPaidAt) return setError('请选择到账日期')
+    const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
     if (editingId) {
@@ -79,13 +81,16 @@ function App() {
       setNotice('记录已更新')
     } else {
       updateRecords([record, ...records])
+      const closed = closedRecordModalState()
+      setIsRecordsModalOpen(closed.isOpen)
+      setEditingId(closed.editingId)
       setForm(emptyForm())
       setNotice('记录已保存')
     }
     window.setTimeout(() => setNotice(''), 2200)
   }
 
-  const handleEdit = useCallback((record: OvertimeRecord) => { setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', note: record.note }); setIsRecordsModalOpen(true) }, [])
+  const handleEdit = useCallback((record: OvertimeRecord) => { setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementPaidAt || '', note: record.note }); setIsRecordsModalOpen(true) }, [])
   const handleCalendarDateSelect = useCallback((date: string, record?: OvertimeRecord) => {
     if (record) return handleEdit(record)
     openNewRecordModal(date)
@@ -103,7 +108,7 @@ function App() {
   const handleRemoteLoaded = useCallback((next: OvertimeRecord[]) => { setRecords(next); saveRecords(next); setRemoteMessage(`已读取 ${next.length} 条 GitHub 记录`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
   const saveRemote = useCallback(async (token: string) => { await saveRemoteRecords(records, token); setRemoteMessage('已提交到 GitHub'); window.setTimeout(() => setRemoteMessage(''), 2200) }, [records])
 
-  const confirmOverwrite = () => { if (!pendingOverwrite) return; updateRecords(records.map((record) => record.date === pendingOverwrite.date ? { ...pendingOverwrite, id: record.id } : record)); setPendingOverwrite(null); setForm(emptyForm()); setNotice('已覆盖当天记录'); window.setTimeout(() => setNotice(''), 2200) }
+  const confirmOverwrite = () => { if (!pendingOverwrite) return; updateRecords(records.map((record) => record.date === pendingOverwrite.date ? { ...pendingOverwrite, id: record.id } : record)); setPendingOverwrite(null); closeRecordsModal(); setForm(emptyForm()); setNotice('已覆盖当天记录'); window.setTimeout(() => setNotice(''), 2200) }
 
   return <div className="app-shell">
     <div className="background-grid" />

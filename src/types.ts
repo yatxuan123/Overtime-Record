@@ -9,15 +9,17 @@ export type OvertimeRecord = {
   taxiProvider?: TaxiProvider
   taxiProviderOther?: string
   reimbursementStatus?: ReimbursementStatus
+  reimbursementPaidAt?: string
   note: string
   // 旧版本字段仅用于兼容历史 JSON，不再参与展示或统计。
   hours?: number
   leaveTime?: string
 }
 
-export type RecordFormValue = Omit<OvertimeRecord, 'id' | 'hours' | 'leaveTime' | 'taxiCost'> & {
+export type RecordFormValue = Omit<OvertimeRecord, 'id' | 'hours' | 'leaveTime' | 'taxiCost' | 'reimbursementPaidAt'> & {
   taxiCost: string
   taxiProvider: TaxiProvider
   taxiProviderOther: string
   reimbursementStatus: ReimbursementStatus
+  reimbursementPaidAt: string
 }

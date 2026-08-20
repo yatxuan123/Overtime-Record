@@ -10,6 +10,7 @@ const value: RecordFormValue = {
   taxiProvider: 'taxi',
   taxiProviderOther: '',
   reimbursementStatus: 'unsubmitted',
+  reimbursementPaidAt: '',
   note: '',
 }
 

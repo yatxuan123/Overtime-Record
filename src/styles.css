@@ -163,6 +163,11 @@ input::placeholder, textarea::placeholder { color: #adb8ad; }
 .icon-button--danger:hover { color: #b45444; background: #f7e4de; }
 .record-list { display: flex; flex-direction: column; }
 .record-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; padding-top: 15px; margin-top: 2px; border-top: 1px solid #e5e4db; color: #71867a; font-size: 12px; font-weight: 800; }
+.reimbursement-reminder { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px; padding: 13px 14px; border: 1px solid #ebc891; border-radius: 10px; color: #805b2d; background: #fff7e9; }
+.reimbursement-reminder__icon { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px; color: #b87931; background: #ffedcd; }
+.reimbursement-reminder__content { min-width: 0; }
+.reimbursement-reminder strong { display: block; font-size: 13px; }
+.reimbursement-reminder p { margin: 4px 0 0; color: #95734a; font-size: 11px; line-height: 1.5; }
 .record-pagination .icon-button { width: 32px; height: 32px; border: 1px solid #d4d8ce; background: #fbfcfa; }
 .record-pagination .icon-button:disabled { opacity: .35; cursor: not-allowed; }
 .record-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 17px 0; border-bottom: 1px solid #e5e4db; }
