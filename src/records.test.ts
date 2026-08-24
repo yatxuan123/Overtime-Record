@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -77,5 +77,18 @@ describe('record data', () => {
       { record: records[0], waitingDays: 231 },
       { record: records[1], waitingDays: 5 },
     ])
+  })
+
+  it('sums pending reimbursement amounts for a selected period or all records', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'aug-pending', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'submitted', note: '' },
+      { id: 'aug-paid', date: '2026-08-02', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', note: '' },
+      { id: 'jul-pending', date: '2026-07-01', tookTaxi: true, taxiCost: 40, reimbursementStatus: 'submitted', note: '' },
+      { id: 'aug-unsubmitted', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    expect(sumPendingReimbursementAmount(records, '2026-08')).toBe(30)
+    expect(sumPendingReimbursementAmount(records, '2026')).toBe(70)
+    expect(sumPendingReimbursementAmount(records)).toBe(70)
   })
 })

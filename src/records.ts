@@ -42,6 +42,12 @@ export function getPendingReimbursements(records: OvertimeRecord[], today: strin
     .sort((left, right) => right.waitingDays - left.waitingDays)
 }
 
+export function sumPendingReimbursementAmount(records: OvertimeRecord[], period?: string): number {
+  return records
+    .filter((record) => record.tookTaxi && record.reimbursementStatus === 'submitted' && (!period || record.date.startsWith(period)))
+    .reduce((sum, record) => sum + record.taxiCost, 0)
+}
+
 export function normalizeRecord(value: unknown): OvertimeRecord | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Partial<OvertimeRecord>

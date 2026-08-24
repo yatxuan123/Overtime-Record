@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2 } from 'lucide-react'
-import { filterRecordsByPeriod, getPendingReimbursements, paginateRecords, reimbursementStatusLabel, taxiProviderLabel } from '../records'
+import { filterRecordsByPeriod, getPendingReimbursements, paginateRecords, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord } from '../types'
 
@@ -16,6 +16,8 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
   const currentPage = Math.min(page, totalPages)
   const visibleRecords = useMemo(() => paginateRecords(filteredRecords, currentPage, PAGE_SIZE), [currentPage, filteredRecords])
   const pendingReimbursements = useMemo(() => getPendingReimbursements(records, localDateKey()), [records])
+  const pendingAmount = useMemo(() => sumPendingReimbursementAmount(records, period), [period, records])
+  const allPendingAmount = useMemo(() => sumPendingReimbursementAmount(records), [records])
   const previousMonth = (() => {
     const date = new Date(`${localDateKey().slice(0, 7)}-01T12:00:00`)
     date.setMonth(date.getMonth() - 1)
@@ -37,6 +39,10 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
           <strong>有 {pendingReimbursements.length} 笔报销已申报但未到账</strong>
           <p>最早一笔是 {pendingReimbursements[0].record.date}，已经等待 {pendingReimbursements[0].waitingDays} 天。</p>
           {previousMonthPending.length > 0 && <p>上个月还有 {previousMonthPending.length} 笔未到账，最早已等待 {previousMonthPending[0].waitingDays} 天。</p>}
+        </div>
+        <div className="reimbursement-reminder__amounts">
+          <div><span>{periodLabel}未到账</span><strong>¥{pendingAmount.toFixed(0)}</strong></div>
+          <div><span>全部未到账</span><strong>¥{allPendingAmount.toFixed(0)}</strong></div>
         </div>
       </aside>}
       {filteredRecords.length === 0 ? (
