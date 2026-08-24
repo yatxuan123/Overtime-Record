@@ -6,7 +6,8 @@
     "taxiCost": 110.1,
     "taxiProvider": "didi",
     "taxiProviderOther": "",
-    "reimbursementStatus": "submitted",
+    "reimbursementStatus": "paid",
+    "reimbursementPaidAt": "2026-08-24",
     "note": ""
   },
   {
@@ -16,7 +17,8 @@
     "taxiCost": 60.3,
     "taxiProvider": "amap",
     "taxiProviderOther": "",
-    "reimbursementStatus": "submitted",
+    "reimbursementStatus": "paid",
+    "reimbursementPaidAt": "2026-08-24",
     "note": ""
   },
   {
@@ -26,7 +28,8 @@
     "taxiCost": 102,
     "taxiProvider": "didi",
     "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
+    "reimbursementStatus": "paid",
+    "reimbursementPaidAt": "2026-08-24",
     "note": ""
   },
   {
@@ -86,7 +89,8 @@
     "taxiCost": 53.4,
     "taxiProvider": "taxi",
     "taxiProviderOther": "",
-    "reimbursementStatus": "submitted",
+    "reimbursementStatus": "paid",
+    "reimbursementPaidAt": "2026-08-24",
     "note": "滴滴"
   },
   {
@@ -97,7 +101,7 @@
     "taxiProvider": "taxi",
     "taxiProviderOther": "",
     "reimbursementStatus": "paid",
-    "reimbursementPaidAt": "2026-08-08",
-    "note": "的士"
+    "note": "的士",
+    "reimbursementPaidAt": "2026-08-08"
   }
 ]
