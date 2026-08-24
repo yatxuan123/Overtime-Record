@@ -16,7 +16,8 @@ export async function loadLocalRecords(localUrl = DEFAULT_LOCAL_DATA_URL, fetchI
 }
 
 export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
-  const response = await fetchImpl(remoteUrl, { cache: 'no-store' })
+  const cacheBustedUrl = `${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+  const response = await fetchImpl(cacheBustedUrl, { cache: 'no-store' })
   if (response.status === 404) return []
   if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
   const data: unknown = await response.json()

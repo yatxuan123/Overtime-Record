@@ -21,7 +21,11 @@ describe('GitHub remote JSON storage', () => {
       requestedUrl = String(input)
       return Response.json(records)
     })
-    expect(requestedUrl).toBe(DEFAULT_REMOTE_URL)
+    const parsedUrl = new URL(requestedUrl)
+    expect(`${parsedUrl.origin}${parsedUrl.pathname}`).toBe(DEFAULT_REMOTE_URL)
+    const cacheBust = parsedUrl.searchParams.get('v')
+    expect(cacheBust).not.toBeNull()
+    expect(cacheBust).toMatch(/^\d+$/)
     expect(loaded).toEqual([{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }])
   })
 
