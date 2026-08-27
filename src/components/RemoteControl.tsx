@@ -47,13 +47,18 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
     setMessage('GitHub Token 已保存到当前会话')
   }
 
+  const handleSaveClick = () => {
+    if (token.trim()) void save()
+    else setOpenMode('save')
+  }
+
   const isConfiguring = openMode === 'configure'
 
   return <>
     <div className="remote-actions" title={DEFAULT_REMOTE_URL}>
       <button className="remote-button" type="button" onClick={() => void load()} disabled={busy !== null}><Download size={14} />{busy === 'load' ? '读取中' : '读取 GitHub'}</button>
       <button className="remote-button" type="button" onClick={() => setOpenMode('configure')} disabled={busy !== null}><KeyRound size={14} />配置 Token</button>
-      <button className="remote-button remote-button--save" type="button" onClick={() => setOpenMode('save')} disabled={busy !== null}><GitCommit size={14} />保存 GitHub</button>
+      <button className="remote-button remote-button--save" type="button" onClick={handleSaveClick} disabled={busy !== null}><GitCommit size={14} />{busy === 'save' ? '保存中' : '保存 GitHub'}</button>
     </div>
     {message && <span className="remote-message" role="status">{message}</span>}
     {openMode && <div className="sync-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpenMode(null) }}>
