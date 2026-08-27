@@ -10,7 +10,7 @@ button { cursor: pointer; }
 .page-container { max-width: 1180px; margin: 0 auto; padding: 28px 42px 36px; position: relative; }
 .topbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 30px; border-bottom: 1px solid rgba(41, 78, 63, .16); }
 .topbar-tools { display: flex; align-items: center; gap: 14px; }
-.remote-actions { display: flex; gap: 6px; }
+.remote-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .remote-button { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 9px; border: 1px solid rgba(53, 91, 75, .18); border-radius: 8px; color: #557465; background: rgba(255, 255, 255, .58); font-size: 11px; font-weight: 800; }
 .remote-button:hover { background: #fff; color: #19342d; }
 .remote-button--save { color: #a5652d; border-color: rgba(211, 154, 86, .4); }

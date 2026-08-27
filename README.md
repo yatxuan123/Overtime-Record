@@ -38,7 +38,7 @@ https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-
 
 1. 在页面点击“保存 GitHub”。
 2. 输入 GitHub Token。
-3. 点击确认，应用读取远程版本并通过 GitHub Contents API 更新 JSON 文件。
+3. 点击“配置 Token”保存当前会话 Token，再点击“保存 GitHub”提交；应用会读取远程版本并通过 GitHub Contents API 更新 JSON 文件。
 4. 后续记录变更会自动读取远程版本；版本一致才会提交，版本冲突时先读取最新 GitHub 数据。
 
 应用不使用 Wrangler、Cloudflare Worker 或 Git 命令保存数据。
