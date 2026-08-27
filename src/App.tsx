@@ -68,10 +68,13 @@ function App() {
   const handleSubmit = () => {
     const taxiCost = form.tookTaxi ? Number(form.taxiCost || 0) : 0
     if (!form.date) return setError('请选择加班日期')
+    const todayKey = localDateKey()
+    if (form.date > todayKey) return setError('不能记录未来日期')
     if (form.tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
     if (form.tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
     if (form.tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
     if (form.tookTaxi && form.reimbursementStatus === 'paid' && !form.reimbursementPaidAt) return setError('请选择到账日期')
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt > todayKey) return setError('到账日期不能晚于今天')
     const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
@@ -90,7 +93,7 @@ function App() {
     window.setTimeout(() => setNotice(''), 2200)
   }
 
-  const handleEdit = useCallback((record: OvertimeRecord) => { setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementPaidAt || '', note: record.note }); setIsRecordsModalOpen(true) }, [])
+  const handleEdit = useCallback((record: OvertimeRecord) => { setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementStatus === 'paid' ? (record.reimbursementPaidAt || localDateKey()) : '', note: record.note }); setIsRecordsModalOpen(true) }, [])
   const handleCalendarDateSelect = useCallback((date: string, record?: OvertimeRecord) => {
     if (record) return handleEdit(record)
     openNewRecordModal(date)

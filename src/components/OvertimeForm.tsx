@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { CarFront, FileText, Plus, Save } from 'lucide-react'
 import { REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
+import { localDateKey } from '../overtime'
 import type { RecordFormValue } from '../types'
 import { DatePicker } from './DatePicker'
 
@@ -14,6 +15,7 @@ type OvertimeFormProps = {
 }
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
+  const todayKey = localDateKey()
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
@@ -52,12 +54,12 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
           <legend>报销状态</legend>
           <div className="option-radio-group option-radio-group--status">
-            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: option.value === 'paid' ? value.reimbursementPaidAt : '' })} /><span>{option.label}</span></label>)}
+            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: option.value === 'paid' ? (value.reimbursementPaidAt || todayKey) : '' })} /><span>{option.label}</span></label>)}
           </div>
         </fieldset>}
         {value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">
           <span>到账日期</span>
-          <div className="input-wrap"><input type="date" value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
+          <div className="input-wrap"><input type="date" max={todayKey} value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
         </label>}
         <label className="field field--full">
           <span>备注 <em>可选</em></span>
