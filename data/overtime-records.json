@@ -1,110 +1,121 @@
 {
-  "version": 1,
+  "version": 2,
   "records": [
-  {
-    "id": "8c6d7da6-3c10-47e0-8a3e-d20c6f9f4816",
-    "date": "2026-08-18",
-    "tookTaxi": true,
-    "taxiCost": 110.1,
-    "taxiProvider": "didi",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "paid",
-    "reimbursementPaidAt": "2026-08-24",
-    "note": ""
-  },
-  {
-    "id": "915b06a3-443d-42f0-a3c3-c1f0e1d34005",
-    "date": "2026-08-11",
-    "tookTaxi": true,
-    "taxiCost": 60.3,
-    "taxiProvider": "amap",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "paid",
-    "reimbursementPaidAt": "2026-08-24",
-    "note": ""
-  },
-  {
-    "id": "220a52e4-11e6-48b0-87c2-0bfd5d3e69d6",
-    "date": "2026-08-05",
-    "tookTaxi": true,
-    "taxiCost": 102,
-    "taxiProvider": "didi",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "paid",
-    "reimbursementPaidAt": "2026-08-24",
-    "note": ""
-  },
-  {
-    "id": "d7abdd7e-2078-480f-9eef-f9e80007e418",
-    "date": "2026-07-03",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
-    "note": ""
-  },
-  {
-    "id": "3e9392ba-18d8-4fa5-a421-d0e2ad30938a",
-    "date": "2026-07-27",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
-    "note": ""
-  },
-  {
-    "id": "06775d30-889a-4166-888a-ab528fdae760",
-    "date": "2026-07-29",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
-    "note": ""
-  },
-  {
-    "id": "8e7f3552-7b91-4838-adad-6ac4324a7945",
-    "date": "2026-07-10",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
-    "note": ""
-  },
-  {
-    "id": "5aba3ff6-2a3a-4ddc-bc7e-33036960d907",
-    "date": "2026-07-09",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "taxiProvider": "",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "unsubmitted",
-    "note": ""
-  },
-  {
-    "id": "2f589f3a-ba01-4e51-984a-a480a37e89db",
-    "date": "2026-07-21",
-    "tookTaxi": true,
-    "taxiCost": 53.4,
-    "taxiProvider": "taxi",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "paid",
-    "reimbursementPaidAt": "2026-08-24",
-    "note": "滴滴"
-  },
-  {
-    "id": "6d1de833-938e-4181-a27a-4eb7184794cd",
-    "date": "2026-07-15",
-    "tookTaxi": true,
-    "taxiCost": 57,
-    "taxiProvider": "taxi",
-    "taxiProviderOther": "",
-    "reimbursementStatus": "paid",
-    "note": "的士",
-    "reimbursementPaidAt": "2026-08-08"
-  }
+    {
+      "id": "56a5237b-6bed-44ee-a1b3-2ec270b06ecd",
+      "date": "2026-08-27",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "reimbursementPaidAt": "",
+      "note": ""
+    },
+    {
+      "id": "8c6d7da6-3c10-47e0-8a3e-d20c6f9f4816",
+      "date": "2026-08-18",
+      "tookTaxi": true,
+      "taxiCost": 110.1,
+      "taxiProvider": "didi",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "paid",
+      "note": "",
+      "reimbursementPaidAt": "2026-08-24"
+    },
+    {
+      "id": "915b06a3-443d-42f0-a3c3-c1f0e1d34005",
+      "date": "2026-08-11",
+      "tookTaxi": true,
+      "taxiCost": 60.3,
+      "taxiProvider": "amap",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "paid",
+      "note": "",
+      "reimbursementPaidAt": "2026-08-24"
+    },
+    {
+      "id": "220a52e4-11e6-48b0-87c2-0bfd5d3e69d6",
+      "date": "2026-08-05",
+      "tookTaxi": true,
+      "taxiCost": 102,
+      "taxiProvider": "didi",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "paid",
+      "note": "",
+      "reimbursementPaidAt": "2026-08-24"
+    },
+    {
+      "id": "d7abdd7e-2078-480f-9eef-f9e80007e418",
+      "date": "2026-07-03",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "note": ""
+    },
+    {
+      "id": "3e9392ba-18d8-4fa5-a421-d0e2ad30938a",
+      "date": "2026-07-27",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "note": ""
+    },
+    {
+      "id": "06775d30-889a-4166-888a-ab528fdae760",
+      "date": "2026-07-29",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "note": ""
+    },
+    {
+      "id": "8e7f3552-7b91-4838-adad-6ac4324a7945",
+      "date": "2026-07-10",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "note": ""
+    },
+    {
+      "id": "5aba3ff6-2a3a-4ddc-bc7e-33036960d907",
+      "date": "2026-07-09",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "note": ""
+    },
+    {
+      "id": "2f589f3a-ba01-4e51-984a-a480a37e89db",
+      "date": "2026-07-21",
+      "tookTaxi": true,
+      "taxiCost": 53.4,
+      "taxiProvider": "taxi",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "paid",
+      "note": "滴滴",
+      "reimbursementPaidAt": "2026-08-24"
+    },
+    {
+      "id": "6d1de833-938e-4181-a27a-4eb7184794cd",
+      "date": "2026-07-15",
+      "tookTaxi": true,
+      "taxiCost": 57,
+      "taxiProvider": "taxi",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "paid",
+      "note": "的士",
+      "reimbursementPaidAt": "2026-08-08"
+    }
   ]
 }
