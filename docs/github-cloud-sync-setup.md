@@ -1,6 +1,6 @@
-# GitHub 手动远程数据配置
+# GitHub 远程数据配置
 
-应用默认把数据保存在浏览器 `localStorage`。只有点击顶部按钮时，才访问当前公开仓库中的 JSON 文件：
+应用默认把数据保存在浏览器 `localStorage`。输入并记住 GitHub Token 后，新增、编辑、覆盖和删除记录都会自动提交到当前公开仓库中的 JSON 文件：
 
 ```text
 https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json
@@ -14,12 +14,14 @@ https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-
 
 ## 保存 GitHub
 
-点击“保存 GitHub”，在弹窗中输入 GitHub Fine-grained Token。网页会调用 GitHub Contents API：
+点击“保存 GitHub”，在弹窗中输入 GitHub Fine-grained Token。Token 只保存在当前浏览器会话中，之后的记录变更会自动保存。手动按钮和自动保存使用同一套流程：
 
 1. 读取 `data/overtime-records.json` 当前版本 SHA。
-2. 用 `PUT /repos/yatxuan123/Overtime-Record/contents/data/overtime-records.json` 提交 JSON。
-3. GitHub 自动创建一次 commit。
-4. Token 只保存在当前页面内存中，不写入 `localStorage`。
+2. 解码 JSON 并比较远程 `version` 与本地最近一次读取的版本。
+3. 版本一致时，将版本号加一，用 `PUT /repos/yatxuan123/Overtime-Record/contents/data/overtime-records.json` 提交 JSON。
+4. GitHub 自动创建一次 commit。
+
+版本不一致时会拒绝覆盖，并提示先点击“读取 GitHub”获取最新数据，再继续保存。网络失败或没有 Token 时，本地数据仍会保留。
 
 ## Token 权限
 
@@ -46,20 +48,23 @@ Token 只在创建成功页面显示一次。不要把 Token 写入代码、提�
 
 ## 远程文件不存在时
 
-第一次点击“保存 GitHub”时，如果 `data/overtime-records.json` 尚不存在，API 会自动创建该文件。文件内容是一个 JSON 数组：
+第一次点击“保存 GitHub”时，如果 `data/overtime-records.json` 尚不存在，API 会自动创建该文件。文件内容使用版本对象：
 
 ```json
-[
-  {
-    "id": "example",
-    "date": "2026-08-08",
-    "tookTaxi": false,
-    "taxiCost": 0,
-    "reimbursementStatus": "unsubmitted",
-    "reimbursementPaidAt": "",
-    "note": ""
-  }
-]
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "example",
+      "date": "2026-08-08",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "reimbursementStatus": "unsubmitted",
+      "reimbursementPaidAt": "",
+      "note": ""
+    }
+  ]
+}
 ```
 
 ## 常见问题

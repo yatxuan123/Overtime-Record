@@ -5,28 +5,36 @@ export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/
 export const DEFAULT_LOCAL_DATA_URL = `${import.meta.env.BASE_URL}data/overtime-records.json`
 
 type FetchImpl = typeof fetch
+export type RemoteRecordsSnapshot = { records: OvertimeRecord[]; version: number }
+export type RemoteSaveResult = { sha: string; version: number }
 
 export async function loadLocalRecords(localUrl = DEFAULT_LOCAL_DATA_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
+  const snapshot = await loadLocalRecordsSnapshot(localUrl, fetchImpl)
+  return snapshot.records
+}
+
+export async function loadLocalRecordsSnapshot(localUrl = DEFAULT_LOCAL_DATA_URL, fetchImpl: FetchImpl = fetch): Promise<RemoteRecordsSnapshot> {
   const response = await fetchImpl(localUrl, { cache: 'no-store' })
   if (!response.ok) throw new Error(`本地数据读取失败（HTTP ${response.status}）`)
   const data: unknown = await response.json()
-  if (Array.isArray(data)) return normalizeRecords(data)
-  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return normalizeRecords((data as { records: unknown[] }).records)
-  throw new Error('本地 JSON 格式无效')
+  return parseRecordsSnapshot(data, '本地')
 }
 
 export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
-  const cacheBustedUrl = `${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
-  const response = await fetchImpl(cacheBustedUrl, { cache: 'no-store' })
-  if (response.status === 404) return []
-  if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
-  const data: unknown = await response.json()
-  if (Array.isArray(data)) return normalizeRecords(data)
-  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) return normalizeRecords((data as { records: unknown[] }).records)
-  throw new Error('远程 JSON 格式无效')
+  const snapshot = await loadRemoteRecordsSnapshot(remoteUrl, fetchImpl)
+  return snapshot.records
 }
 
-export async function saveRemoteRecords(records: OvertimeRecord[], token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL): Promise<string> {
+export async function loadRemoteRecordsSnapshot(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<RemoteRecordsSnapshot> {
+  const cacheBustedUrl = `${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+  const response = await fetchImpl(cacheBustedUrl, { cache: 'no-store' })
+  if (response.status === 404) return { records: [], version: 0 }
+  if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
+  const data: unknown = await response.json()
+  return parseRecordsSnapshot(data, '远程')
+}
+
+export async function saveRemoteRecords(records: OvertimeRecord[], token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL, expectedVersion?: number): Promise<RemoteSaveResult> {
   if (!token.trim()) throw new Error('请输入 GitHub Token')
   const apiUrl = toContentsApiUrl(remoteUrl)
   const headers = {
@@ -41,10 +49,15 @@ export async function saveRemoteRecords(records: OvertimeRecord[], token: string
   if (!currentResponse.ok && currentResponse.status !== 404) throw new Error(`GitHub 文件读取失败（HTTP ${currentResponse.status}）`)
   const current: unknown = currentResponse.status === 404 ? null : await currentResponse.json()
   const sha = current && typeof current === 'object' && typeof (current as { sha?: unknown }).sha === 'string' ? (current as { sha: string }).sha : undefined
+  const currentVersion = getContentsVersion(current)
+  if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+    throw new Error(`GitHub 数据版本冲突：远程为 v${currentVersion}，本地为 v${expectedVersion}，请先读取最新数据后再保存`)
+  }
+  const nextVersion = currentVersion + 1
   const response = await fetchImpl(apiUrl, {
     method: 'PUT',
     headers,
-    body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify(records, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
+    body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify({ version: nextVersion, records }, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
   })
   if (response.status === 401) throw new Error('GitHub Token 无效')
   if (response.status === 403) throw new Error(`GitHub 拒绝写入：${await githubMessage(response)}`)
@@ -53,7 +66,30 @@ export async function saveRemoteRecords(records: OvertimeRecord[], token: string
   const saved: unknown = await response.json()
   const newSha = saved && typeof saved === 'object' && (saved as { content?: unknown }).content && typeof (saved as { content: { sha?: unknown } }).content.sha === 'string' ? (saved as { content: { sha: string } }).content.sha : ''
   if (!newSha) throw new Error('GitHub 返回了无效的保存结果')
-  return newSha
+  return { sha: newSha, version: nextVersion }
+}
+
+function parseRecordsSnapshot(data: unknown, source: string): RemoteRecordsSnapshot {
+  if (Array.isArray(data)) return { records: normalizeRecords(data), version: 1 }
+  if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) {
+    const version = (data as { version?: unknown }).version
+    if (version !== undefined && (!Number.isInteger(version) || (version as number) < 1)) throw new Error(`${source} JSON 版本号无效`)
+    return { records: normalizeRecords((data as { records: unknown[] }).records), version: typeof version === 'number' ? version : 1 }
+  }
+  throw new Error(`${source} JSON 格式无效`)
+}
+
+function getContentsVersion(value: unknown): number {
+  if (!value || typeof value !== 'object') return 0
+  const content = (value as { content?: unknown }).content
+  if (typeof content !== 'string' || !content.trim()) return 1
+  try {
+    const decoded = decodeBase64(content)
+    const parsed: unknown = JSON.parse(decoded)
+    return parseRecordsSnapshot(parsed, '远程').version
+  } catch {
+    throw new Error('GitHub 数据版本号无效，请先读取最新数据后再保存')
+  }
 }
 
 function toContentsApiUrl(remoteUrl: string): string {
@@ -69,6 +105,12 @@ function encodeBase64(value: string): string {
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)
   return btoa(binary)
+}
+
+function decodeBase64(value: string): string {
+  const binary = atob(value.replace(/\s/g, ''))
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
 }
 
 async function githubMessage(response: Response): Promise<string> {

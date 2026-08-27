@@ -10,8 +10,8 @@
 - 已到账的报销可记录实际到账日期，已申报但未到账的记录会在明细中提醒等待天数。
 - 按月或按年查看日历总览。
 - 明细跟随当前月份或年份筛选，并按每页 8 条分页显示。
-- 顶部统计当前周期的加班天数、打车天数和打车费用。
-- GitHub 数据只在手动点击“读取 GitHub”或“保存 GitHub”时访问。
+- 顶部统计当前周期的加班天数、打车天数、打车总费用、已到账费用和未到账费用。
+- 输入 GitHub Token 后，新增、编辑、覆盖和删除记录会自动保存到 GitHub；“保存 GitHub”按钮也会执行同样的版本校验。
 
 ## 本地运行
 
@@ -38,9 +38,10 @@ https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-
 
 1. 在页面点击“保存 GitHub”。
 2. 输入 GitHub Token。
-3. 点击确认，应用通过 GitHub Contents API 更新 JSON 文件。
+3. 点击确认，应用读取远程版本并通过 GitHub Contents API 更新 JSON 文件。
+4. 后续记录变更会自动读取远程版本；版本一致才会提交，版本冲突时先读取最新 GitHub 数据。
 
-应用不会自动同步，也不使用 Wrangler、Cloudflare Worker 或 Git 命令保存数据。
+应用不使用 Wrangler、Cloudflare Worker 或 Git 命令保存数据。
 
 ## 构建检查
 

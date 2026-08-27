@@ -1,13 +1,13 @@
 import { Download, GitCommit, Save, X } from 'lucide-react'
 import { useState } from 'react'
-import { DEFAULT_REMOTE_URL } from '../remote'
+import { DEFAULT_REMOTE_URL, type RemoteRecordsSnapshot } from '../remote'
 import { loadRemoteToken, saveRemoteToken } from '../storage'
 import type { OvertimeRecord } from '../types'
 
 type RemoteControlProps = {
   records: OvertimeRecord[]
-  onLoad: () => Promise<OvertimeRecord[]>
-  onLoaded: (records: OvertimeRecord[]) => void
+  onLoad: () => Promise<RemoteRecordsSnapshot>
+  onLoaded: (snapshot: RemoteRecordsSnapshot) => void
   onSave: (token: string) => Promise<void>
 }
 
@@ -20,10 +20,10 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
   const load = async () => {
     setBusy('load'); setMessage('')
     try {
-      const remoteRecords = await onLoad()
-      if (records.length && !window.confirm(`远程数据共 ${remoteRecords.length} 条，将替换当前本地记录，继续吗？`)) return
-      onLoaded(remoteRecords)
-      setMessage(`已读取 ${remoteRecords.length} 条记录`)
+      const remoteSnapshot = await onLoad()
+      if (records.length && !window.confirm(`远程数据共 ${remoteSnapshot.records.length} 条，将替换当前本地记录，继续吗？`)) return
+      onLoaded(remoteSnapshot)
+      setMessage(`已读取 ${remoteSnapshot.records.length} 条记录（v${remoteSnapshot.version}）`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '读取失败')
     } finally { setBusy(null) }

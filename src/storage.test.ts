@@ -8,6 +8,8 @@ import {
   saveWorkerUrl,
   loadRemoteToken,
   saveRemoteToken,
+  loadRemoteVersion,
+  saveRemoteVersion,
 } from './storage'
 import { emptyEnvelope } from './sync/data'
 
@@ -66,5 +68,14 @@ describe('sync storage', () => {
     expect(loadRemoteToken(session)).toBe('github-token')
     saveRemoteToken(session, '')
     expect(loadRemoteToken(session)).toBe('')
+  })
+
+  it('stores the last known GitHub data version', () => {
+    const session = new MemoryStorage()
+    expect(loadRemoteVersion(session)).toBeNull()
+    saveRemoteVersion(session, 8)
+    expect(loadRemoteVersion(session)).toBe(8)
+    session.setItem('overtime-github-version', 'invalid')
+    expect(loadRemoteVersion(session)).toBeNull()
   })
 })

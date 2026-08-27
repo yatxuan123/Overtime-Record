@@ -1,4 +1,6 @@
-[
+{
+  "version": 1,
+  "records": [
   {
     "id": "8c6d7da6-3c10-47e0-8a3e-d20c6f9f4816",
     "date": "2026-08-18",
@@ -104,4 +106,5 @@
     "note": "的士",
     "reimbursementPaidAt": "2026-08-08"
   }
-]
+  ]
+}
