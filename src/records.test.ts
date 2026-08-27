@@ -5,12 +5,13 @@ import type { OvertimeRecord } from './types'
 describe('record data', () => {
   it('summarizes the currently displayed month without overtime hours', () => {
     const records: OvertimeRecord[] = [
-      { id: '1', date: '2026-07-05', tookTaxi: true, taxiCost: 30, taxiProvider: 'didi', taxiProviderOther: '', note: '' },
+      { id: '1', date: '2026-07-05', tookTaxi: true, taxiCost: 30, taxiProvider: 'didi', taxiProviderOther: '', reimbursementStatus: 'paid', note: '' },
       { id: '2', date: '2026-07-10', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', note: '' },
+      { id: '4', date: '2026-07-20', tookTaxi: true, taxiCost: 12, taxiProvider: 'taxi', taxiProviderOther: '', reimbursementStatus: 'submitted', note: '' },
       { id: '3', date: '2026-08-01', tookTaxi: true, taxiCost: 50, taxiProvider: 'amap', taxiProviderOther: '', note: '' },
     ]
 
-    expect(buildRecordSummary(records, '2026-07')).toEqual({ days: 2, taxiDays: 1, taxiCost: 30 })
+    expect(buildRecordSummary(records, '2026-07')).toEqual({ days: 3, taxiDays: 2, taxiCost: 42, taxiPaidCost: 30, taxiPendingCost: 12 })
   })
 
   it('summarizes all months in a selected year', () => {
@@ -20,7 +21,7 @@ describe('record data', () => {
       { id: '3', date: '2025-12-31', tookTaxi: true, taxiCost: 60, taxiProvider: 'other', taxiProviderOther: '顺风车', note: '' },
     ]
 
-    expect(buildRecordSummary(records, '2026')).toEqual({ days: 2, taxiDays: 1, taxiCost: 20 })
+    expect(buildRecordSummary(records, '2026')).toEqual({ days: 2, taxiDays: 1, taxiCost: 20, taxiPaidCost: 0, taxiPendingCost: 20 })
   })
 
   it('filters details by the selected month or year', () => {

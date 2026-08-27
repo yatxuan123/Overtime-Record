@@ -59,7 +59,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         </fieldset>}
         {value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">
           <span>到账日期</span>
-          <div className="input-wrap"><input type="date" max={todayKey} value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
+          <div className="input-wrap"><input type="date" min={value.date} max={todayKey} value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
         </label>}
         <label className="field field--full">
           <span>备注 <em>可选</em></span>

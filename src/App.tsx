@@ -74,6 +74,7 @@ function App() {
     if (form.tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
     if (form.tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
     if (form.tookTaxi && form.reimbursementStatus === 'paid' && !form.reimbursementPaidAt) return setError('请选择到账日期')
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt < form.date) return setError('到账日期不能早于加班日期')
     if (form.tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt > todayKey) return setError('到账日期不能晚于今天')
     const record: OvertimeRecord = { id: editingId ?? crypto.randomUUID(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined

@@ -13,16 +13,19 @@ export const REIMBURSEMENT_STATUS_OPTIONS: ReadonlyArray<{ value: ReimbursementS
   { value: 'paid', label: '已到账' },
 ]
 
-export type RecordSummary = { days: number; taxiDays: number; taxiCost: number }
+export type RecordSummary = { days: number; taxiDays: number; taxiCost: number; taxiPaidCost: number; taxiPendingCost: number }
 
 export type PendingReimbursement = { record: OvertimeRecord; waitingDays: number }
 
 export function buildRecordSummary(records: OvertimeRecord[], period: string): RecordSummary {
   const filtered = filterRecordsByPeriod(records, period)
+  const taxiRecords = filtered.filter((record) => record.tookTaxi)
   return {
     days: filtered.length,
-    taxiDays: filtered.filter((record) => record.tookTaxi).length,
-    taxiCost: filtered.reduce((sum, record) => sum + (record.tookTaxi ? record.taxiCost : 0), 0),
+    taxiDays: taxiRecords.length,
+    taxiCost: taxiRecords.reduce((sum, record) => sum + record.taxiCost, 0),
+    taxiPaidCost: taxiRecords.filter((record) => record.reimbursementStatus === 'paid').reduce((sum, record) => sum + record.taxiCost, 0),
+    taxiPendingCost: taxiRecords.filter((record) => record.reimbursementStatus !== 'paid').reduce((sum, record) => sum + record.taxiCost, 0),
   }
 }
 
