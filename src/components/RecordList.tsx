@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2 } from 'lucide-react'
-import { filterRecordsByPeriod, getPendingReimbursements, paginateRecords, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
+import { filterRecordsByPeriod, formatCurrency, getPendingReimbursements, paginateRecords, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord } from '../types'
 
@@ -41,8 +41,8 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
           {previousMonthPending.length > 0 && <p>上个月还有 {previousMonthPending.length} 笔未到账，最早已等待 {previousMonthPending[0].waitingDays} 天。</p>}
         </div>
         <div className="reimbursement-reminder__amounts">
-          <div><span>{periodLabel}未到账</span><strong>¥{pendingAmount.toFixed(0)}</strong></div>
-          <div><span>全部未到账</span><strong>¥{allPendingAmount.toFixed(0)}</strong></div>
+          <div><span>{periodLabel}未到账</span><strong>¥{formatCurrency(pendingAmount)}</strong></div>
+          <div><span>全部未到账</span><strong>¥{formatCurrency(allPendingAmount)}</strong></div>
         </div>
       </aside>}
       {filteredRecords.length === 0 ? (
@@ -53,7 +53,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
             {visibleRecords.map((record) => (
               <article className="record-row" key={record.id}>
                 <div className="record-date"><strong>{new Date(`${record.date}T00:00:00`).getDate().toString().padStart(2, '0')}</strong><span>{dateFormatter.format(new Date(`${record.date}T00:00:00`)).replace(/^\d+月/, '')}</span></div>
-                <button className="record-main record-edit-trigger" type="button" onClick={() => onEdit(record)} aria-label={`编辑 ${record.date} 的加班记录`}><div className="record-title"><strong>{record.note || '未填写备注'}</strong><span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span>{record.tookTaxi && <span className={`record-status record-status--${record.reimbursementStatus || 'unsubmitted'}`}>{reimbursementStatusLabel(record.reimbursementStatus)}</span>}</div><div className="record-meta"><span>加班日</span>{record.tookTaxi && <span><CarFront size={14} />¥{record.taxiCost.toFixed(0)}</span>}{record.tookTaxi && record.reimbursementStatus === 'paid' && record.reimbursementPaidAt && <span><CalendarCheck2 size={14} />到账 {record.reimbursementPaidAt}</span>}</div></button>
+                <button className="record-main record-edit-trigger" type="button" onClick={() => onEdit(record)} aria-label={`编辑 ${record.date} 的加班记录`}><div className="record-title"><strong>{record.note || '未填写备注'}</strong><span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span>{record.tookTaxi && <span className={`record-status record-status--${record.reimbursementStatus || 'unsubmitted'}`}>{reimbursementStatusLabel(record.reimbursementStatus)}</span>}</div><div className="record-meta"><span>加班日</span>{record.tookTaxi && <span><CarFront size={14} />¥{formatCurrency(record.taxiCost)}</span>}{record.tookTaxi && record.reimbursementStatus === 'paid' && record.reimbursementPaidAt && <span><CalendarCheck2 size={14} />到账 {record.reimbursementPaidAt}</span>}</div></button>
                 <div className="row-actions"><button className="icon-button" onClick={() => onEdit(record)} aria-label="编辑记录" title="编辑记录"><Edit3 size={16} /></button><button className="icon-button icon-button--danger" onClick={() => onDelete(record.id)} aria-label="删除记录" title="删除记录"><Trash2 size={16} /></button></div>
               </article>
             ))}

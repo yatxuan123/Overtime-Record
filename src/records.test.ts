@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, formatCurrency, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
+  it('formats taxi costs without rounding away decimal amounts', () => {
+    expect(formatCurrency(103.5)).toBe('103.5')
+    expect(formatCurrency(103.50)).toBe('103.5')
+    expect(formatCurrency(104)).toBe('104')
+    expect(formatCurrency(103.56)).toBe('103.56')
+  })
+
   it('summarizes the currently displayed month without overtime hours', () => {
     const records: OvertimeRecord[] = [
       { id: '1', date: '2026-07-05', tookTaxi: true, taxiCost: 30, taxiProvider: 'didi', taxiProviderOther: '', reimbursementStatus: 'paid', note: '' },

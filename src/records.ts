@@ -17,6 +17,12 @@ export type RecordSummary = { days: number; taxiDays: number; taxiCost: number; 
 
 export type PendingReimbursement = { record: OvertimeRecord; waitingDays: number }
 
+const currencyFormatter = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 })
+
+export function formatCurrency(value: number): string {
+  return currencyFormatter.format(value)
+}
+
 export function buildRecordSummary(records: OvertimeRecord[], period: string): RecordSummary {
   const filtered = filterRecordsByPeriod(records, period)
   const taxiRecords = filtered.filter((record) => record.tookTaxi)
