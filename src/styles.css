@@ -36,6 +36,9 @@ h1 span { color: #e8b46b; }
 .outline-button--details:hover { color: #19342d; background: #fff; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 22px; }
 .summary-card { display: flex; align-items: center; gap: 14px; min-height: 102px; padding: 18px 20px; border: 1px solid rgba(53, 91, 75, .14); border-radius: 12px; background: rgba(255, 255, 255, .58); box-shadow: 0 10px 22px rgba(49, 77, 63, .05); }
+.summary-card--action { width: 100%; color: inherit; text-align: left; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease; }
+.summary-card--action:hover { border-color: rgba(211, 154, 86, .55); background: #fffaf1; box-shadow: 0 13px 27px rgba(49, 77, 63, .09); transform: translateY(-1px); }
+.summary-card--action:focus-visible { outline: 2px solid #d9a15e; outline-offset: 2px; }
 .summary-card__icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: rgba(232, 180, 107, .12); color: #e8b46b; }
 .summary-card--blue .summary-card__icon { color: #9dc7bd; background: rgba(157, 199, 189, .12); }
 .summary-card--green .summary-card__icon { color: #b6d998; background: rgba(182, 217, 152, .12); }
@@ -190,6 +193,10 @@ input::placeholder, textarea::placeholder { color: #adb8ad; }
 .pending-detail-date small { color: #8b9a90; font-size: 10px; }
 .pending-detail-provider, .pending-detail-status { color: #708377; font-size: 11px; }
 .pending-detail-amount { color: #805b2d; font-family: 'DM Mono', monospace; font-size: 14px; white-space: nowrap; }
+.summary-detail-modal--comp-time .pending-detail-modal__summary { color: #6e4f91; background: #f4eef9; border-bottom-color: #d8c5e6; }
+.summary-detail-modal--comp-time .pending-detail-amount { display: inline-flex; align-items: center; gap: 5px; color: #6e4f91; }
+.summary-detail-modal--comp-time .pending-detail-provider { display: inline-flex; align-items: center; gap: 5px; }
+.summary-detail-empty { padding: 42px 20px 48px; color: #889a90; font-size: 12px; text-align: center; }
 .record-pagination .icon-button { width: 32px; height: 32px; border: 1px solid #d4d8ce; background: #fbfcfa; }
 .record-pagination .icon-button:disabled { opacity: .35; cursor: not-allowed; }
 .record-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 17px 0; border-bottom: 1px solid #e5e4db; }
