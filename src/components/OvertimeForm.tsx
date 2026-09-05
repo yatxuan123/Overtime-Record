@@ -16,7 +16,7 @@ type OvertimeFormProps = {
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
   const todayKey = localDateKey()
-  const canClaimTaxi = isWeekendDate(value.date)
+  const canClaimTaxi = !isWeekendDate(value.date)
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
@@ -29,7 +29,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         <label className="field">
           <span>加班日期</span>
           <DatePicker value={value.date} onChange={(date) => onChange({ date })} />
-          {canClaimTaxi ? <small className="comp-time-hint">周末加班，保存后自动计入 1 天调休</small> : <small className="weekday-overtime-hint">工作日仅展示加班记录字段</small>}
+          {canClaimTaxi ? <small className="comp-time-hint">工作日加班可记录打车报销</small> : <small className="weekday-overtime-hint">周末加班，保存后自动计入 1 天调休</small>}
         </label>
         {canClaimTaxi && <div className="field">
           <span>回家方式</span>
