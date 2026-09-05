@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2 } from 'lucide-react'
+import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2, X } from 'lucide-react'
 import { filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, paginateRecords, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord } from '../types'
@@ -11,6 +11,7 @@ const dateFormatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'nu
 
 export const RecordList = memo(function RecordList({ records, period, periodLabel, embedded = false, showHeading = true, onEdit, onDelete }: RecordListProps) {
   const [page, setPage] = useState(1)
+  const [isPendingDetailsOpen, setIsPendingDetailsOpen] = useState(false)
   const filteredRecords = useMemo(() => filterRecordsByPeriod(records, period), [period, records])
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -27,7 +28,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
 
   useEffect(() => { setPage(1) }, [period, records.length])
 
-  return (
+  return <>
     <section className={`records-panel ${embedded ? 'records-panel--embedded' : ''}`}>
       {showHeading && <div className="panel-heading panel-heading--list">
         <div><span className="section-kicker">{periodLabel}</span><h2>加班明细</h2></div>
@@ -42,7 +43,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
         </div>
         <div className="reimbursement-reminder__amounts">
           <div><span>{periodLabel}未到账</span><strong>¥{formatCurrency(pendingAmount)}</strong></div>
-          <div><span>全部未到账</span><strong>¥{formatCurrency(allPendingAmount)}</strong></div>
+          <button className="reimbursement-total-button" type="button" onClick={() => setIsPendingDetailsOpen(true)} aria-label="查看未到账费用明细" title="查看未到账费用明细"><span>未到账总费用</span><strong>¥{formatCurrency(allPendingAmount)}</strong></button>
         </div>
       </aside>}
       {filteredRecords.length === 0 ? (
@@ -62,5 +63,14 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
         </>
       )}
     </section>
-  )
+    {isPendingDetailsOpen && <div className="pending-detail-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsPendingDetailsOpen(false) }}>
+      <section className="pending-detail-modal" role="dialog" aria-modal="true" aria-labelledby="pending-detail-title">
+        <header className="pending-detail-modal__header"><div><span className="section-kicker">REIMBURSEMENT</span><h2 id="pending-detail-title">未到账费用明细</h2></div><button className="icon-button" type="button" onClick={() => setIsPendingDetailsOpen(false)} aria-label="关闭未到账费用明细" title="关闭"><X size={18} /></button></header>
+        <div className="pending-detail-modal__summary"><span>共 {pendingReimbursements.length} 笔未到账</span><strong>¥{formatCurrency(allPendingAmount)}</strong></div>
+        <div className="pending-detail-list">
+          {pendingReimbursements.map(({ record, waitingDays }) => <button className="pending-detail-row" type="button" key={record.id} onClick={() => { setIsPendingDetailsOpen(false); onEdit(record) }} aria-label={`编辑 ${record.date} 未到账费用`}><span className="pending-detail-date"><strong>{record.date}</strong><small>已等待 {waitingDays} 天</small></span><span className="pending-detail-provider">{taxiProviderLabel(record)}</span><span className="pending-detail-status">{reimbursementStatusLabel(record.reimbursementStatus)}</span><strong className="pending-detail-amount">¥{formatCurrency(record.taxiCost)}</strong></button>)}
+        </div>
+      </section>
+    </div>}
+  </>
 })
