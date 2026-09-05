@@ -15,7 +15,7 @@ const value: RecordFormValue = {
 }
 
 describe('OvertimeForm', () => {
-  it('hides taxi and reimbursement fields for weekend overtime', () => {
+  it('shows taxi and reimbursement fields for weekend overtime', () => {
     const markup = renderToStaticMarkup(
       <OvertimeForm
         value={{ ...value, date: '2026-08-08' }}
@@ -27,10 +27,10 @@ describe('OvertimeForm', () => {
       />,
     )
 
-    expect(markup).not.toContain('回家方式')
-    expect(markup).not.toContain('打车方式')
-    expect(markup).not.toContain('打车费用')
-    expect(markup).not.toContain('报销状态')
+    expect(markup).toContain('回家方式')
+    expect(markup).toContain('打车方式')
+    expect(markup).toContain('打车费用')
+    expect(markup).toContain('报销状态')
   })
 
   it('shows taxi and reimbursement fields for weekday overtime', () => {
