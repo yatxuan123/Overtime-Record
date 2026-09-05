@@ -16,9 +16,12 @@ type OvertimeFormProps = {
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
   const todayKey = localDateKey()
+  const canClaimTaxi = isWeekendDate(value.date)
+  const clearTaxiFields: Partial<RecordFormValue> = { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
   const toggleTaxi = () => onChange(value.tookTaxi
-    ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
+    ? clearTaxiFields
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
+  const handleDateChange = (date: string) => onChange(isWeekendDate(date) ? { date } : { date, ...clearTaxiFields })
 
   return (
     <section className={`form-panel ${embedded ? 'form-panel--embedded' : ''}`}>
@@ -27,38 +30,38 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
       <div className="form-fields">
         <label className="field">
           <span>加班日期</span>
-          <DatePicker value={value.date} onChange={(date) => onChange({ date })} />
-          {isWeekendDate(value.date) && <small className="comp-time-hint">周末加班，保存后自动计入 1 天调休</small>}
+          <DatePicker value={value.date} onChange={handleDateChange} />
+          {canClaimTaxi ? <small className="comp-time-hint">周末加班，保存后自动计入 1 天调休</small> : <small className="weekday-overtime-hint">工作日仅记录加班，不支持打车报销</small>}
         </label>
-        <div className="field">
+        {canClaimTaxi && <div className="field">
           <span>回家方式</span>
           <button className={`taxi-toggle ${value.tookTaxi ? 'is-active' : ''}`} type="button" onClick={toggleTaxi} aria-pressed={value.tookTaxi}>
             <CarFront size={17} />
             <span>{value.tookTaxi ? '打车回家' : '自行回家'}</span>
             <span className="toggle-dot" />
           </button>
-        </div>
-        {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
+        </div>}
+        {canClaimTaxi && value.tookTaxi && <fieldset className="field field--full fieldset-reset">
           <legend>打车方式</legend>
           <div className="option-radio-group">
             {TAXI_PROVIDER_OPTIONS.map((option) => <label className={`option-radio ${value.taxiProvider === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="taxi-provider" value={option.value} checked={value.taxiProvider === option.value} onChange={() => onChange({ taxiProvider: option.value, taxiProviderOther: option.value === 'other' ? value.taxiProviderOther : '' })} /><span>{option.label}</span></label>)}
           </div>
         </fieldset>}
-        {value.tookTaxi && <label className="field">
+        {canClaimTaxi && value.tookTaxi && <label className="field">
           <span>打车费用 <em>元</em></span>
           <div className="input-wrap"><span className="currency">¥</span><input type="number" min="0" step="1" placeholder="0" value={value.taxiCost} onChange={(event) => onChange({ taxiCost: event.target.value })} /></div>
         </label>}
-        {value.tookTaxi && value.taxiProvider === 'other' && <label className="field field--full">
+        {canClaimTaxi && value.tookTaxi && value.taxiProvider === 'other' && <label className="field field--full">
           <span>其他打车方式</span>
           <div className="input-wrap"><input type="text" placeholder="例如：顺风车、网约车" value={value.taxiProviderOther} onChange={(event) => onChange({ taxiProviderOther: event.target.value })} /></div>
         </label>}
-        {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
+        {canClaimTaxi && value.tookTaxi && <fieldset className="field field--full fieldset-reset">
           <legend>报销状态</legend>
           <div className="option-radio-group option-radio-group--status">
             {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: option.value === 'paid' ? (value.reimbursementPaidAt || todayKey) : '' })} /><span>{option.label}</span></label>)}
           </div>
         </fieldset>}
-        {value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">
+        {canClaimTaxi && value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">
           <span>到账日期</span>
           <div className="input-wrap"><input type="date" min={value.date} max={todayKey} value={value.reimbursementPaidAt} onChange={(event) => onChange({ reimbursementPaidAt: event.target.value })} /></div>
         </label>}

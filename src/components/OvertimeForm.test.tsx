@@ -15,6 +15,24 @@ const value: RecordFormValue = {
 }
 
 describe('OvertimeForm', () => {
+  it('hides taxi and reimbursement fields for weekday overtime', () => {
+    const markup = renderToStaticMarkup(
+      <OvertimeForm
+        value={value}
+        isEditing
+        error=""
+        embedded
+        onChange={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    )
+
+    expect(markup).not.toContain('回家方式')
+    expect(markup).not.toContain('打车方式')
+    expect(markup).not.toContain('打车费用')
+    expect(markup).not.toContain('报销状态')
+  })
+
   it('does not render a second close button while editing', () => {
     const markup = renderToStaticMarkup(
       <OvertimeForm
