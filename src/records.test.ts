@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, formatCurrency, getPendingReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, isWeekendDate, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
+  it('recognizes Saturday and Sunday as weekend overtime days', () => {
+    expect(isWeekendDate('2026-08-08')).toBe(true)
+    expect(isWeekendDate('2026-08-09')).toBe(true)
+    expect(isWeekendDate('2026-08-10')).toBe(false)
+  })
+
+  it('calculates one compensatory day for each weekend record in a period', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'sat', date: '2026-08-08', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: 'sun', date: '2026-08-09', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: 'weekday', date: '2026-08-10', tookTaxi: false, taxiCost: 0, note: '' },
+    ]
+
+    expect(getCompTimeDays(records[0])).toBe(1)
+    expect(getCompTimeDays(records[2])).toBe(0)
+    expect(sumCompTimeDays(records, '2026-08')).toBe(2)
+  })
+
   it('formats taxi costs without rounding away decimal amounts', () => {
     expect(formatCurrency(103.5)).toBe('103.5')
     expect(formatCurrency(103.50)).toBe('103.5')

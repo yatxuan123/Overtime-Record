@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { CarFront, FileText, Plus, Save } from 'lucide-react'
-import { REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
+import { isWeekendDate, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
 import { localDateKey } from '../overtime'
 import type { RecordFormValue } from '../types'
 import { DatePicker } from './DatePicker'
@@ -28,6 +28,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         <label className="field">
           <span>加班日期</span>
           <DatePicker value={value.date} onChange={(date) => onChange({ date })} />
+          {isWeekendDate(value.date) && <small className="comp-time-hint">周末加班，保存后自动计入 1 天调休</small>}
         </label>
         <div className="field">
           <span>回家方式</span>

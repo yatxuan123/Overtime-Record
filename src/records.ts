@@ -23,6 +23,23 @@ export function formatCurrency(value: number): string {
   return currencyFormatter.format(value)
 }
 
+export function isWeekendDate(dateKey: string): boolean {
+  if (!isDateKey(dateKey)) return false
+  const date = new Date(`${dateKey}T12:00:00`)
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+export function getCompTimeDays(record: Pick<OvertimeRecord, 'date'>): number {
+  return isWeekendDate(record.date) ? 1 : 0
+}
+
+export function sumCompTimeDays(records: OvertimeRecord[], period?: string): number {
+  return records
+    .filter((record) => !period || record.date.startsWith(period))
+    .reduce((sum, record) => sum + getCompTimeDays(record), 0)
+}
+
 export function buildRecordSummary(records: OvertimeRecord[], period: string): RecordSummary {
   const filtered = filterRecordsByPeriod(records, period)
   const taxiRecords = filtered.filter((record) => record.tookTaxi)
