@@ -14,6 +14,8 @@ import { closedRecordModalState } from './modalState'
 
 const today = localDateKey()
 const emptyForm = (): RecordFormValue => ({ date: today, tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '', note: '' })
+type NoticeTone = 'success' | 'pending' | 'warning' | 'error'
+type Notice = { message: string; tone: NoticeTone }
 
 function monthLabel(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' }).format(date)
@@ -25,7 +27,8 @@ function App() {
   const [form, setForm] = useState<RecordFormValue>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const noticeTimerRef = useRef<number | null>(null)
   const [pendingOverwrite, setPendingOverwrite] = useState<OvertimeRecord | null>(null)
   const [overviewMode, setOverviewMode] = useState<'month' | 'year'>('month')
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7))
@@ -62,25 +65,37 @@ function App() {
   const periodLabel = overviewMode === 'year' ? `${selectedPeriod}年` : `${selectedPeriod.slice(0, 4)}年${Number(selectedPeriod.slice(5, 7))}月`
   const summary = useMemo(() => buildRecordSummary(records, selectedPeriod), [records, selectedPeriod])
 
+  const showNotice = useCallback((message: string, tone: NoticeTone = 'success') => {
+    if (noticeTimerRef.current !== null) window.clearTimeout(noticeTimerRef.current)
+    setNotice({ message, tone })
+    noticeTimerRef.current = window.setTimeout(() => { setNotice(null); noticeTimerRef.current = null }, 3200)
+  }, [])
+
   const enqueueRemoteSave = useCallback((nextRecords: OvertimeRecord[], token: string): Promise<void> => {
     const task = remoteSaveQueueRef.current.then(async () => {
       const result = await saveRemoteRecords(nextRecords, token, fetch, DEFAULT_REMOTE_URL, remoteVersionRef.current)
       remoteVersionRef.current = result.version
       saveRemoteVersion(window.sessionStorage, result.version)
       setRemoteMessage(`已实时保存到 GitHub（v${result.version}）`)
+      showNotice(`已成功保存到 GitHub（v${result.version}）`, 'success')
       window.setTimeout(() => setRemoteMessage(''), 2200)
     })
     remoteSaveQueueRef.current = task.catch(() => {})
     return task
-  }, [])
+  }, [showNotice])
   const updateRecords = useCallback((next: OvertimeRecord[]) => {
     setRecords(next)
     saveRecords(next)
     const token = loadRemoteToken()
-    if (token) void enqueueRemoteSave(next, token).catch((error) => {
-      setRemoteMessage(error instanceof Error ? error.message : '实时保存失败')
-    })
-  }, [enqueueRemoteSave])
+    if (token) {
+      showNotice('已保存到本地，正在同步 GitHub…', 'pending')
+      void enqueueRemoteSave(next, token).catch((error) => {
+        const message = error instanceof Error ? error.message : '实时保存失败'
+        setRemoteMessage(message)
+        showNotice(`本地已保存，但 GitHub 保存失败：${message}`, 'error')
+      })
+    } else showNotice('已保存到本地，未同步 GitHub：尚未配置 Token', 'warning')
+  }, [enqueueRemoteSave, showNotice])
   const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
   const closeRecordsModal = useCallback(() => { setIsRecordsModalOpen(false); setEditingId(null); setForm(emptyForm()); setError(''); setPendingOverwrite(null) }, [])
   const closeDetailsModal = useCallback(() => setIsDetailsModalOpen(false), [])
@@ -104,16 +119,13 @@ function App() {
     if (editingId) {
       updateRecords(records.map((item) => item.id === editingId ? record : item))
       closeRecordsModal()
-      setNotice('记录已更新')
     } else {
       updateRecords([record, ...records])
       const closed = closedRecordModalState()
       setIsRecordsModalOpen(closed.isOpen)
       setEditingId(closed.editingId)
       setForm(emptyForm())
-      setNotice('记录已保存')
     }
-    window.setTimeout(() => setNotice(''), 2200)
   }
 
   const handleEdit = useCallback((record: OvertimeRecord) => { setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementStatus === 'paid' ? (record.reimbursementPaidAt || localDateKey()) : '', note: record.note }); setIsRecordsModalOpen(true) }, [])
@@ -121,7 +133,7 @@ function App() {
     if (record) return handleEdit(record)
     openNewRecordModal(date)
   }, [handleEdit, openNewRecordModal])
-  const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { const next = records.filter((record) => record.id !== id); updateRecords(next); if (editingId === id) closeRecordsModal(); setNotice('记录已删除'); window.setTimeout(() => setNotice(''), 2200) } }, [closeRecordsModal, editingId, records, updateRecords])
+  const handleDelete = useCallback((id: string) => { if (window.confirm('确定删除这条加班记录吗？')) { const next = records.filter((record) => record.id !== id); updateRecords(next); if (editingId === id) closeRecordsModal() } }, [closeRecordsModal, editingId, records, updateRecords])
 
   useEffect(() => {
     if (!isRecordsModalOpen && !isDetailsModalOpen) return
@@ -132,9 +144,18 @@ function App() {
 
   const loadRemote = useCallback(() => loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL), [])
   const handleRemoteLoaded = useCallback((snapshot: { records: OvertimeRecord[]; version: number }) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); saveRecords(snapshot.records); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
-  const saveRemote = useCallback(async (token: string) => { await enqueueRemoteSave(records, token) }, [enqueueRemoteSave, records])
+  const saveRemote = useCallback(async (token: string) => {
+    showNotice('正在保存到 GitHub…', 'pending')
+    try {
+      await enqueueRemoteSave(records, token)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '保存失败'
+      showNotice(`GitHub 保存失败：${message}`, 'error')
+      throw error
+    }
+  }, [enqueueRemoteSave, records, showNotice])
 
-  const confirmOverwrite = () => { if (!pendingOverwrite) return; updateRecords(records.map((record) => record.date === pendingOverwrite.date ? { ...pendingOverwrite, id: record.id } : record)); setPendingOverwrite(null); closeRecordsModal(); setForm(emptyForm()); setNotice('已覆盖当天记录'); window.setTimeout(() => setNotice(''), 2200) }
+  const confirmOverwrite = () => { if (!pendingOverwrite) return; updateRecords(records.map((record) => record.date === pendingOverwrite.date ? { ...pendingOverwrite, id: record.id } : record)); setPendingOverwrite(null); closeRecordsModal(); setForm(emptyForm()) }
 
   return <div className="app-shell">
     <div className="background-grid" />
@@ -146,7 +167,7 @@ function App() {
       {isRecordsModalOpen && <div className="records-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeRecordsModal() }}><section className="records-modal records-modal--form" role="dialog" aria-modal="true" aria-labelledby="records-modal-title"><header className="records-modal__header"><h2 id="records-modal-title">{editingId ? '编辑加班记录' : '新增加班记录'}</h2><button className="icon-button" type="button" onClick={closeRecordsModal} aria-label="关闭表单" title="关闭"><X size={20} /></button></header><div className="records-modal__body records-modal__body--form"><OvertimeForm value={form} isEditing={Boolean(editingId)} error={error} embedded onChange={updateForm} onSubmit={handleSubmit} /></div></section></div>}
       {isDetailsModalOpen && <div className="records-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDetailsModal() }}><section className="records-modal records-modal--details" role="dialog" aria-modal="true" aria-labelledby="details-modal-title"><header className="records-modal__header"><h2 id="details-modal-title">{periodLabel}加班明细</h2><button className="icon-button" type="button" onClick={closeDetailsModal} aria-label="关闭加班明细" title="关闭"><X size={20} /></button></header><div className="records-modal__body records-modal__body--details"><RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} embedded showHeading={false} onEdit={handleEdit} onDelete={handleDelete} /></div></section></div>}
       {pendingOverwrite && <div className="overwrite-dialog" role="alertdialog" aria-modal="true"><div className="overwrite-dialog__icon"><TriangleAlert size={20} /></div><div><strong>这一天已经有记录</strong><p>{pendingOverwrite.date} 已经存在一笔加班记录，要覆盖原记录吗？</p><div className="overwrite-dialog__actions"><button className="secondary-button" onClick={() => setPendingOverwrite(null)}>取消</button><button className="primary-button" onClick={confirmOverwrite}>覆盖记录</button></div></div></div>}
-      {notice && <div className="toast" role="status">{notice}</div>}
+      {notice && <div className={`toast toast--${notice.tone}`} role="status">{notice.message}</div>}
       <footer className="footer-note">{remoteMessage || '数据保存在当前浏览器 · 输入 Token 后自动同步到 GitHub'}</footer>
     </main>
   </div>
