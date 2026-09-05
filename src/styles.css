@@ -34,7 +34,7 @@ h1 span { color: #e8b46b; }
 .outline-button:hover { background: rgba(232, 180, 107, .14); }
 .outline-button--details { color: #557465; border-color: rgba(53, 91, 75, .28); background: rgba(255, 255, 255, .58); }
 .outline-button--details:hover { color: #19342d; background: #fff; }
-.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 13px; margin-bottom: 22px; }
+.summary-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 13px; margin-bottom: 22px; }
 .summary-card { display: flex; align-items: center; gap: 14px; min-height: 102px; padding: 18px 20px; border: 1px solid rgba(53, 91, 75, .14); border-radius: 12px; background: rgba(255, 255, 255, .58); box-shadow: 0 10px 22px rgba(49, 77, 63, .05); }
 .summary-card__icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: rgba(232, 180, 107, .12); color: #e8b46b; }
 .summary-card--blue .summary-card__icon { color: #9dc7bd; background: rgba(157, 199, 189, .12); }

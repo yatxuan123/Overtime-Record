@@ -19,6 +19,7 @@ describe('record data', () => {
     expect(getCompTimeDays(records[0])).toBe(1)
     expect(getCompTimeDays(records[2])).toBe(0)
     expect(sumCompTimeDays(records, '2026-08')).toBe(2)
+    expect(sumCompTimeDays(records)).toBe(2)
   })
 
   it('formats taxi costs without rounding away decimal amounts', () => {
