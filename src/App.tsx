@@ -7,7 +7,7 @@ import { MonthOverview } from './components/MonthOverview'
 import { RemoteControl } from './components/RemoteControl'
 import { loadRecords, loadRemoteToken, loadRemoteVersion, saveRecords, saveRemoteVersion } from './storage'
 import type { OvertimeRecord, RecordFormValue } from './types'
-import { buildRecordSummary, isWeekendDate, sumCompTimeDays } from './records'
+import { buildRecordSummary, sumCompTimeDays } from './records'
 import { createRecordId, findRecordByDate, localDateKey } from './overtime'
 import { DEFAULT_REMOTE_URL, loadLocalRecordsSnapshot, loadRemoteRecordsSnapshot, saveRemoteRecords } from './remote'
 import { closedRecordModalState } from './modalState'
@@ -105,18 +105,17 @@ function App() {
   const openDetailsModal = useCallback(() => { setIsRecordsModalOpen(false); setEditingId(null); setError(''); setPendingOverwrite(null); setIsDetailsModalOpen(true) }, [])
 
   const handleSubmit = () => {
-    const tookTaxi = isWeekendDate(form.date) && form.tookTaxi
-    const taxiCost = tookTaxi ? Number(form.taxiCost || 0) : 0
+    const taxiCost = form.tookTaxi ? Number(form.taxiCost || 0) : 0
     if (!form.date) return setError('请选择加班日期')
     const todayKey = localDateKey()
     if (form.date > todayKey) return setError('不能记录未来日期')
-    if (tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
-    if (tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
-    if (tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
-    if (tookTaxi && form.reimbursementStatus === 'paid' && !form.reimbursementPaidAt) return setError('请选择到账日期')
-    if (tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt < form.date) return setError('到账日期不能早于加班日期')
-    if (tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt > todayKey) return setError('到账日期不能晚于今天')
-    const record: OvertimeRecord = { id: editingId ?? createRecordId(), date: form.date, tookTaxi, taxiCost, taxiProvider: tookTaxi ? form.taxiProvider : '', taxiProviderOther: tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: tookTaxi ? form.reimbursementStatus : 'unsubmitted', reimbursementPaidAt: tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
+    if (form.tookTaxi && (!Number.isFinite(taxiCost) || taxiCost < 0)) return setError('请输入有效的打车费用')
+    if (form.tookTaxi && !form.taxiProvider) return setError('请选择打车方式')
+    if (form.tookTaxi && form.taxiProvider === 'other' && !form.taxiProviderOther.trim()) return setError('请填写其他打车方式')
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && !form.reimbursementPaidAt) return setError('请选择到账日期')
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt < form.date) return setError('到账日期不能早于加班日期')
+    if (form.tookTaxi && form.reimbursementStatus === 'paid' && form.reimbursementPaidAt > todayKey) return setError('到账日期不能晚于今天')
+    const record: OvertimeRecord = { id: editingId ?? createRecordId(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
     if (editingId) {
