@@ -1,6 +1,17 @@
 {
-  "version": 8,
+  "version": 9,
   "records": [
+    {
+      "id": "ec0a51e4-bf3a-4969-9dd4-8dcd0eac4f4e",
+      "date": "2026-09-05",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "reimbursementPaidAt": "",
+      "note": ""
+    },
     {
       "id": "52a949e3-7fd1-471d-b325-090347cc5f7b",
       "date": "2026-09-03",
@@ -9,7 +20,6 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "submitted",
-      "reimbursementPaidAt": "",
       "note": ""
     },
     {
