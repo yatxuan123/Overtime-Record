@@ -60,11 +60,11 @@ export function saveSessionPassword(storage: Storage, password: string): void {
   else storage.removeItem(SESSION_PASSWORD_KEY)
 }
 
-export function loadRemoteToken(storage: Storage): string {
+export function loadRemoteToken(storage: Storage = window.localStorage): string {
   return storage.getItem(REMOTE_TOKEN_KEY) ?? ''
 }
 
-export function saveRemoteToken(storage: Storage, token: string): void {
+export function saveRemoteToken(token: string, storage: Storage = window.localStorage): void {
   if (token) storage.setItem(REMOTE_TOKEN_KEY, token)
   else storage.removeItem(REMOTE_TOKEN_KEY)
 }

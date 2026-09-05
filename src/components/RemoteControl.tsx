@@ -13,7 +13,7 @@ type RemoteControlProps = {
 
 export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteControlProps) {
   const [openMode, setOpenMode] = useState<'configure' | 'save' | null>(null)
-  const [token, setToken] = useState(() => loadRemoteToken(window.sessionStorage))
+  const [token, setToken] = useState(() => loadRemoteToken())
   const [busy, setBusy] = useState<'load' | 'save' | null>(null)
   const [message, setMessage] = useState('')
 
@@ -32,7 +32,7 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
   const save = async () => {
     setBusy('save'); setMessage('')
     try {
-      saveRemoteToken(window.sessionStorage, token)
+      saveRemoteToken(token)
       await onSave(token)
       setOpenMode(null)
       setMessage('已提交到 GitHub')
@@ -42,7 +42,7 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
   }
 
   const configureToken = () => {
-    saveRemoteToken(window.sessionStorage, token)
+    saveRemoteToken(token)
     setOpenMode(null)
     setMessage('GitHub Token 已保存到当前会话')
   }
@@ -64,7 +64,7 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
     {openMode && <div className="sync-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpenMode(null) }}>
       <section className="sync-modal" role="dialog" aria-modal="true" aria-label={isConfiguring ? '配置 GitHub Token' : '保存到 GitHub'}>
         <header className="sync-modal__header"><div><span className="section-kicker">GITHUB ACCESS</span><h2>{isConfiguring ? '配置 GitHub Token' : '保存到项目仓库'}</h2></div><button className="icon-button" type="button" onClick={() => setOpenMode(null)} aria-label="关闭"><X size={18} /></button></header>
-        <p className="sync-modal__message">{isConfiguring ? 'Token 只保存在本次浏览器会话，关闭浏览器后自动失效。配置后，新增、编辑和删除记录会自动同步到 GitHub。' : `将把 ${records.length} 条记录提交到 data/overtime-records.json，并先校验远程版本。`}</p>
+        <p className="sync-modal__message">{isConfiguring ? 'Token 保存在本机浏览器中，关闭网页后仍会保留。配置后，新增、编辑和删除记录会自动同步到 GitHub。' : `将把 ${records.length} 条记录提交到 data/overtime-records.json，并先校验远程版本。`}</p>
         <label className="sync-field"><span>Fine-grained GitHub Token</span><input type="password" value={token} onChange={(event) => setToken(event.target.value)} placeholder="粘贴 Token" autoComplete="off" /></label>
         <div className="sync-actions"><button className="secondary-button" type="button" onClick={() => setOpenMode(null)}>取消</button>{isConfiguring ? <button className="primary-button" type="button" onClick={configureToken} disabled={!token.trim()}><KeyRound size={15} />保存 Token</button> : <button className="primary-button" type="button" onClick={() => void save()} disabled={!token.trim() || busy !== null}><Save size={15} />{busy === 'save' ? '提交中' : '提交 JSON'}</button>}</div>
       </section>

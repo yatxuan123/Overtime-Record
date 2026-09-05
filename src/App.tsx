@@ -76,7 +76,7 @@ function App() {
   const updateRecords = useCallback((next: OvertimeRecord[]) => {
     setRecords(next)
     saveRecords(next)
-    const token = loadRemoteToken(window.sessionStorage)
+    const token = loadRemoteToken()
     if (token) void enqueueRemoteSave(next, token).catch((error) => {
       setRemoteMessage(error instanceof Error ? error.message : '实时保存失败')
     })

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   loadSessionPassword,
   loadSyncCache,
@@ -62,12 +62,14 @@ describe('sync storage', () => {
     expect(loadSessionPassword(session)).toBe('secret')
   })
 
-  it('stores the GitHub token for the current browser session', () => {
-    const session = new MemoryStorage()
-    saveRemoteToken(session, 'github-token')
-    expect(loadRemoteToken(session)).toBe('github-token')
-    saveRemoteToken(session, '')
-    expect(loadRemoteToken(session)).toBe('')
+  it('stores the GitHub token in persistent browser storage by default', () => {
+    const local = new MemoryStorage()
+    vi.stubGlobal('window', { localStorage: local })
+    saveRemoteToken('github-token')
+    expect(loadRemoteToken()).toBe('github-token')
+    saveRemoteToken('')
+    expect(loadRemoteToken()).toBe('')
+    vi.unstubAllGlobals()
   })
 
   it('stores the last known GitHub data version', () => {
