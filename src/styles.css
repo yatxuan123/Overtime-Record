@@ -74,12 +74,12 @@ h1 span { color: #e8b46b; }
 .overview-day__text { display: flex; flex-direction: column; gap: 3px; margin-top: 9px; color: #708377; font-size: 10px; font-weight: 800; line-height: 1.25; }
 .month-overview--text .calendar-grid--overview:not(.calendar-grid--head) { grid-auto-rows: 112px; }
 .calendar-indicator, .legend-dot { display: block; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; }
-.calendar-indicator--overtime, .legend-dot--overtime { background: #df5b55; }
-.calendar-indicator--taxi, .legend-dot--taxi { background: #e0a541; }
-.calendar-indicator--unsubmitted, .legend-dot--unsubmitted { background: #a88e62; }
-.calendar-indicator--submitted, .legend-dot--submitted { background: #176b9a; }
-.calendar-indicator--paid, .legend-dot--paid { background: #18794e; }
-.calendar-indicator--comp-time, .legend-dot--comp-time { background: #8e6bb3; }
+.calendar-indicator--overtime, .legend-dot--overtime { background: #ef4444; }
+.calendar-indicator--taxi, .legend-dot--taxi { background: #f97316; }
+.calendar-indicator--unsubmitted, .legend-dot--unsubmitted { background: #64748b; }
+.calendar-indicator--submitted, .legend-dot--submitted { background: #0ea5e9; }
+.calendar-indicator--paid, .legend-dot--paid { background: #22c55e; }
+.calendar-indicator--comp-time, .legend-dot--comp-time { background: #8b5cf6; }
 .overview-empty { min-height: 64px; }
 .overview-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 17px; margin-top: 17px; color: #85958a; font-size: 11px; }
 .overview-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -211,9 +211,9 @@ input::placeholder, textarea::placeholder { color: #adb8ad; }
 .record-badge { flex: 0 0 auto; padding: 4px 7px; color: #a5652d; background: #fff0db; border-radius: 5px; font-size: 10px; font-weight: 800; }
 .record-badge--comp-time { color: #6e4f91; background: #eee7f7; }
 .record-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 5px; font-size: 10px; font-weight: 800; }
-.record-status--unsubmitted { color: #8b6a43; background: #f5ead8; }
-.record-status--submitted { color: #145f8a; background: #d8eef8; }
-.record-status--paid { color: #14663f; background: #d9f1df; }
+.record-status--unsubmitted { color: #475569; background: #eef2f7; }
+.record-status--submitted { color: #0369a1; background: #dff4ff; }
+.record-status--paid { color: #15803d; background: #e1f7e8; }
 .record-meta { display: flex; gap: 15px; margin-top: 8px; color: #788d81; font-size: 12px; }
 .record-meta span { gap: 5px; }
 .record-meta svg { color: #ad7b45; }
