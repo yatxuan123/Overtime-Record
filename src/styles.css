@@ -77,8 +77,8 @@ h1 span { color: #e8b46b; }
 .calendar-indicator--overtime, .legend-dot--overtime { background: #df5b55; }
 .calendar-indicator--taxi, .legend-dot--taxi { background: #e0a541; }
 .calendar-indicator--unsubmitted, .legend-dot--unsubmitted { background: #a88e62; }
-.calendar-indicator--submitted, .legend-dot--submitted { background: #4e8eaa; }
-.calendar-indicator--paid, .legend-dot--paid { background: #3f8c6d; }
+.calendar-indicator--submitted, .legend-dot--submitted { background: #176b9a; }
+.calendar-indicator--paid, .legend-dot--paid { background: #18794e; }
 .calendar-indicator--comp-time, .legend-dot--comp-time { background: #8e6bb3; }
 .overview-empty { min-height: 64px; }
 .overview-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 17px; margin-top: 17px; color: #85958a; font-size: 11px; }
@@ -212,8 +212,8 @@ input::placeholder, textarea::placeholder { color: #adb8ad; }
 .record-badge--comp-time { color: #6e4f91; background: #eee7f7; }
 .record-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 5px; font-size: 10px; font-weight: 800; }
 .record-status--unsubmitted { color: #8b6a43; background: #f5ead8; }
-.record-status--submitted { color: #3d7187; background: #e1f1f5; }
-.record-status--paid { color: #3f8060; background: #e4f2e5; }
+.record-status--submitted { color: #145f8a; background: #d8eef8; }
+.record-status--paid { color: #14663f; background: #d9f1df; }
 .record-meta { display: flex; gap: 15px; margin-top: 8px; color: #788d81; font-size: 12px; }
 .record-meta span { gap: 5px; }
 .record-meta svg { color: #ad7b45; }
