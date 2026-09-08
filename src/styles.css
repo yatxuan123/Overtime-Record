@@ -75,7 +75,7 @@ h1 span { color: #e8b46b; }
 .month-overview--text .calendar-grid--overview:not(.calendar-grid--head) { grid-auto-rows: 112px; }
 .calendar-indicator, .legend-dot { display: block; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; }
 .calendar-indicator--overtime, .legend-dot--overtime { background: #ef4444; }
-.calendar-indicator--taxi, .legend-dot--taxi { background: #f97316; }
+.calendar-indicator--taxi { background: #64748b; }
 .calendar-indicator--unsubmitted, .legend-dot--unsubmitted { background: #64748b; }
 .calendar-indicator--submitted, .legend-dot--submitted { background: #0ea5e9; }
 .calendar-indicator--paid, .legend-dot--paid { background: #22c55e; }
