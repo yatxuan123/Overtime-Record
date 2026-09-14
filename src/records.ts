@@ -70,8 +70,8 @@ export function getPendingReimbursements(records: OvertimeRecord[], today: strin
 
 export function sumPendingReimbursementAmount(records: OvertimeRecord[], period?: string): number {
   return records
-    .filter((record) => record.tookTaxi && record.reimbursementStatus === 'submitted' && (!period || record.date.startsWith(period)))
-    .reduce((sum, record) => sum + record.taxiCost, 0)
+        .filter((record) => record.tookTaxi && record.reimbursementStatus !== 'paid' && (!period || record.date.startsWith(period)))
+        .reduce((sum, record) => sum + record.taxiCost, 0)
 }
 
 export function normalizeRecord(value: unknown): OvertimeRecord | null {
