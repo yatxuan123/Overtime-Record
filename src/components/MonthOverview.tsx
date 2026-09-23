@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatCurrency, getCompTimeDays, reimbursementStatusLabel, sumCompTimeDays } from '../records'
+import { buildYearBreakdown, formatCurrency, getCompTimeDays, reimbursementStatusLabel, sumCompTimeDays, summarizeReimbursementTiming } from '../records'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord } from '../types'
 
@@ -27,20 +27,9 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
     return { days, firstOffset, recordMap, cells, taxiTotal }
   }, [month, monthKey, records, year])
 
-  // 单遍聚合 12 个月，替代原先每个月各做一次 filter + reduce。
-  const yearView = useMemo(() => {
-    const monthly = Array.from({ length: 12 }, (_, index) => ({ month: index + 1, days: 0, taxiCost: 0 }))
-    for (const record of records) {
-      if (!record.date.startsWith(`${yearKey}-`)) continue
-      const monthIndex = Number(record.date.slice(5, 7))
-      if (!Number.isInteger(monthIndex) || monthIndex < 1 || monthIndex > 12) continue
-      const bucket = monthly[monthIndex - 1]
-      bucket.days += 1
-      if (record.tookTaxi) bucket.taxiCost += record.taxiCost
-    }
-    const taxiTotal = monthly.reduce((sum, item) => sum + item.taxiCost, 0)
-    return { monthly, taxiTotal }
-  }, [records, yearKey])
+  const yearView = useMemo(() => buildYearBreakdown(records, yearKey), [records, yearKey])
+  // 到账时效按加班日期归属的年份筛选，与年视图其他数字口径一致。
+  const reimbursementTiming = useMemo(() => summarizeReimbursementTiming(records, yearKey), [records, yearKey])
 
   const compTimeTotal = sumCompTimeDays(records, periodKey)
   const shiftPeriod = (offset: number) => { const next = new Date(year + (mode === 'year' ? offset : 0), month + (mode === 'year' ? 0 : offset), 1); onMonthChange(`${next.getFullYear()}-${pad(next.getMonth() + 1)}`) }
@@ -59,7 +48,7 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
       </div>
     </div>
     <div className="year-overview-grid">
-      {yearView.monthly.map((item) => {
+      {yearView.months.map((item) => {
         const isCurrentMonth = `${yearKey}-${pad(item.month)}` === todayKey.slice(0, 7)
         return <button
           type="button"
@@ -68,14 +57,17 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
           onClick={() => { onModeChange('month'); onMonthChange(`${yearKey}-${pad(item.month)}`) }}
         >
           <strong>{item.month}月</strong>
-          <span>{item.days} 天加班</span>
+          {/* 调休只有大于 0 才显示，避免每个月都顶着一行「调休 0 天」。 */}
+          <span>{item.days} 天加班{item.compDays > 0 && ` · 调休 ${item.compDays} 天`}</span>
           <small>{item.taxiCost ? `打车 ¥${formatCurrency(item.taxiCost)}` : '无打车'}</small>
+          {item.pendingCost > 0 && <small>未到账 ¥{formatCurrency(item.pendingCost)}</small>}
         </button>
       })}
     </div>
     <div className="overview-legend">
       <span><i className="legend-dot legend-dot--overtime" />加班日</span>
-      <span className="overview-total">全年打车费用 ¥{formatCurrency(yearView.taxiTotal)} · 可调休 {compTimeTotal} 天</span>
+      {reimbursementTiming.sampleSize > 0 && <span>报销时效：平均 {reimbursementTiming.average} 天 · 最长 {reimbursementTiming.longest} 天（{reimbursementTiming.sampleSize} 笔已到账）</span>}
+      <span className="overview-total">全年打车费用 ¥{formatCurrency(yearView.taxiCost)} · 全年加班 {yearView.days} 天 · 可调休 {yearView.compDays} 天 · 未到账 ¥{formatCurrency(yearView.pendingCost)}</span>
     </div>
   </section>
 

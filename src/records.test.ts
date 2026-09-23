@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecords, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, buildYearBreakdown, filterRecords, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, summarizeReimbursementTiming, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -185,5 +185,96 @@ describe('record data', () => {
     // 被驳回的钱还没到账，所以计入总额；但它不在「等待打款」列表里。
     expect(sumPendingReimbursementAmount(records)).toBe(50)
     expect(getPendingReimbursements(records, '2026-09-23').map((item) => item.record.id)).toEqual(['submitted'])
+  })
+
+  it('breaks a year down by month with overtime, comp time, taxi and pending cost', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'jul-weekday', date: '2026-07-08', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: 'jul-sat', date: '2026-07-11', tookTaxi: true, taxiCost: 30, taxiProvider: 'didi', taxiProviderOther: '', reimbursementStatus: 'paid', reimbursementPaidAt: '2026-07-20', note: '' },
+      { id: 'aug-sat', date: '2026-08-08', tookTaxi: true, taxiCost: 50, taxiProvider: 'taxi', taxiProviderOther: '', reimbursementStatus: 'submitted', note: '' },
+      { id: 'last-year', date: '2025-08-09', tookTaxi: true, taxiCost: 99, taxiProvider: 'taxi', taxiProviderOther: '', reimbursementStatus: 'submitted', note: '' },
+    ]
+
+    const breakdown = buildYearBreakdown(records, '2026')
+
+    expect(breakdown.months).toHaveLength(12)
+    // 7月：周三加班不计调休，周六计 1 天；已到账的打车费不算未到账。
+    expect(breakdown.months[6]).toEqual({ month: 7, days: 2, compDays: 1, taxiCost: 30, pendingCost: 0 })
+    // 8月：周六 1 天调休，已申报的 50 元计入未到账。
+    expect(breakdown.months[7]).toEqual({ month: 8, days: 1, compDays: 1, taxiCost: 50, pendingCost: 50 })
+    // 全年合计只算 2026 年，其他年份的记录不进任何一格。
+    expect(breakdown.days).toBe(3)
+    expect(breakdown.compDays).toBe(2)
+    expect(breakdown.taxiCost).toBe(80)
+    expect(breakdown.pendingCost).toBe(50)
+  })
+
+  it('returns twelve zeroed months for a year without records', () => {
+    const breakdown = buildYearBreakdown([], '2026')
+
+    expect(breakdown.months).toHaveLength(12)
+    expect(breakdown.months.map((month) => month.month)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    expect(breakdown.months.every((month) => month.days === 0 && month.compDays === 0 && month.taxiCost === 0 && month.pendingCost === 0)).toBe(true)
+    expect(breakdown.days).toBe(0)
+    expect(breakdown.pendingCost).toBe(0)
+  })
+
+  it('counts rejected and unsubmitted fares as pending but not paid ones', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'paid', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', note: '' },
+      { id: 'submitted', date: '2026-08-04', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'submitted', note: '' },
+      { id: 'rejected', date: '2026-08-05', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'rejected', note: '' },
+      { id: 'unsubmitted', date: '2026-08-06', tookTaxi: true, taxiCost: 40, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    const breakdown = buildYearBreakdown(records, '2026')
+
+    expect(breakdown.months[7].taxiCost).toBe(100)
+    // 与 sumPendingReimbursementAmount 同口径：只有已到账的 10 元不算「公司还欠我」。
+    expect(breakdown.months[7].pendingCost).toBe(90)
+    expect(breakdown.pendingCost).toBe(90)
+  })
+
+  it('measures how long reimbursements took to arrive', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'fast', date: '2026-08-18', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-24', note: '' },
+      { id: 'slow', date: '2026-07-21', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-24', note: '' },
+      { id: 'still-waiting', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'submitted', note: '' },
+      { id: 'no-paid-date', date: '2026-08-02', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', note: '' },
+    ]
+
+    // 只统计真正到账的：6 天与 34 天，平均 20 天。
+    expect(summarizeReimbursementTiming(records)).toEqual({ average: 20, longest: 34, sampleSize: 2 })
+    // 按加班日期所属周期筛选，与年视图其余数字口径一致。
+    expect(summarizeReimbursementTiming(records, '2026-08')).toEqual({ average: 6, longest: 6, sampleSize: 1 })
+  })
+
+  it('rounds the average reimbursement cycle to one decimal place', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'a', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-02', note: '' },
+      { id: 'b', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-03', note: '' },
+      { id: 'c', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-03', note: '' },
+    ]
+
+    // (1 + 2 + 2) / 3 = 1.666…，展示成 1.7 而不是 1.6666666666666667。
+    expect(summarizeReimbursementTiming(records)).toEqual({ average: 1.7, longest: 2, sampleSize: 3 })
+  })
+
+  it('reports no reimbursement timing when nothing has been paid yet', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'pending', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'submitted', note: '' },
+    ]
+
+    // 没有样本时给 null，避免页面显示 NaN 天。
+    expect(summarizeReimbursementTiming(records)).toEqual({ average: null, longest: null, sampleSize: 0 })
+  })
+
+  it('ignores paid records whose paid date precedes the overtime date', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'backwards', date: '2026-08-10', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-01', note: '' },
+    ]
+
+    // 手工改过的 JSON 可能出现倒挂日期，既不算样本也不产生负数天数。
+    expect(summarizeReimbursementTiming(records)).toEqual({ average: null, longest: null, sampleSize: 0 })
   })
 })

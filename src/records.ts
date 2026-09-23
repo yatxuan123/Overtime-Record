@@ -28,6 +28,12 @@ export type PendingReimbursement = { record: OvertimeRecord; waitingDays: number
 
 export type CompTimeEntry = { record: OvertimeRecord; days: number; expiresAt: string; daysLeft: number; isExpired: boolean }
 
+export type MonthBreakdown = { month: number; days: number; compDays: number; taxiCost: number; pendingCost: number }
+
+export type YearBreakdown = { months: MonthBreakdown[]; days: number; compDays: number; taxiCost: number; pendingCost: number }
+
+export type ReimbursementTiming = { average: number | null; longest: number | null; sampleSize: number }
+
 export type RecordFilter = { status: ReimbursementStatus | 'all'; keyword: string }
 
 const currencyFormatter = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 })
@@ -88,6 +94,44 @@ export function buildRecordSummary(records: OvertimeRecord[], period: string): R
 
 export function filterRecordsByPeriod(records: OvertimeRecord[], period: string): OvertimeRecord[] {
   return records.filter((record) => record.date.startsWith(period))
+}
+
+// 单遍聚合 12 个月，供年视图一次取用：比每个月各 filter 一次快，也避免同一套口径散在组件里。
+export function buildYearBreakdown(records: OvertimeRecord[], year: string, tables: HolidayTables = DEFAULT_HOLIDAY_TABLES): YearBreakdown {
+  const prefix = `${year}-`
+  const months: MonthBreakdown[] = Array.from({ length: 12 }, (_, index) => ({ month: index + 1, days: 0, compDays: 0, taxiCost: 0, pendingCost: 0 }))
+  const totals = { days: 0, compDays: 0, taxiCost: 0, pendingCost: 0 }
+  for (const record of records) {
+    if (!record.date.startsWith(prefix)) continue
+    const monthIndex = Number(record.date.slice(5, 7))
+    if (!Number.isInteger(monthIndex) || monthIndex < 1 || monthIndex > 12) continue
+    const bucket = months[monthIndex - 1]
+    const compDays = getCompTimeDays(record, tables)
+    bucket.days += 1
+    bucket.compDays += compDays
+    totals.days += 1
+    totals.compDays += compDays
+    if (!record.tookTaxi) continue
+    bucket.taxiCost += record.taxiCost
+    totals.taxiCost += record.taxiCost
+    // 未到账口径与 sumPendingReimbursementAmount 保持一致：已申报 + 未申报 + 被驳回。
+    if (record.reimbursementStatus !== 'paid') {
+      bucket.pendingCost += record.taxiCost
+      totals.pendingCost += record.taxiCost
+    }
+  }
+  return { months, ...totals }
+}
+
+// 统计「加班日 → 到账日」隔了多久。缺到账日或日期倒挂的记录不计入，避免把脏数据算成负天数。
+export function summarizeReimbursementTiming(records: OvertimeRecord[], period?: string): ReimbursementTiming {
+  const cycles = records
+    .filter((record) => record.tookTaxi && record.reimbursementStatus === 'paid' && (!period || record.date.startsWith(period)))
+    .map((record) => isDateKey(record.reimbursementPaidAt) ? signedDifferenceInDays(record.date, record.reimbursementPaidAt) : -1)
+    .filter((days) => days >= 0)
+  if (cycles.length === 0) return { average: null, longest: null, sampleSize: 0 }
+  const total = cycles.reduce((sum, days) => sum + days, 0)
+  return { average: Math.round((total / cycles.length) * 10) / 10, longest: Math.max(...cycles), sampleSize: cycles.length }
 }
 
 // 按报销状态与关键字筛选。状态筛选只对「打了车」的记录有意义，关键字匹配备注、打车方式与日期。
