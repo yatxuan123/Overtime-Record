@@ -1,12 +1,17 @@
 import { CalendarDays, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
+import { Modal } from './Modal'
 
 type DatePickerProps = { value: string; onChange: (value: string) => void }
 const weekdays = ['一', '二', '三', '四', '五', '六', '日']
 const pad = (value: number) => String(value).padStart(2, '0')
 const keyOf = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-export function DatePicker({ value, onChange }: DatePickerProps) {
+const monthDayFormatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
+const dayFormatter = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+const dayWithWeekdayFormatter = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+
+export const DatePicker = memo(function DatePicker({ value, onChange }: DatePickerProps) {
   const selected = value ? new Date(`${value}T12:00:00`) : new Date()
   const todayKey = keyOf(new Date())
   const [open, setOpen] = useState(false)
@@ -30,11 +35,44 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
     setOpen(false)
   }
   const draftDate = draft ? new Date(`${draft}T12:00:00`) : selected
-  const displayValue = value ? new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(selected).replace('周', ' · 周') : '请选择日期'
-  const displaySubValue = value ? new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(selected) : '点击选择日期'
+  const displayValue = value ? monthDayFormatter.format(selected).replace('周', ' · 周') : '请选择日期'
+  const displaySubValue = value ? dayFormatter.format(selected) : '点击选择日期'
 
   return <>
-    <button className="date-display" type="button" onClick={openPicker} aria-label="选择加班日期"><span className="date-display__icon"><CalendarDays size={17} /></span><span className="date-display__copy"><strong>{displayValue}</strong><small>{displaySubValue}</small></span><ChevronRight className="date-display__arrow" size={17} /></button>
-    {open && <div className="date-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}><section className="date-modal" role="dialog" aria-modal="true" aria-label="选择加班日期"><header className="date-modal__header"><div><span className="date-modal__eyebrow">加班日期</span><h3>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(draftDate)}</h3></div><button className="date-modal__close" type="button" onClick={() => setOpen(false)} aria-label="关闭日期选择"><X size={24} /></button></header><div className="calendar-toolbar"><button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} aria-label="上个月"><ChevronLeft size={22} /></button><strong>{viewDate.getFullYear()} 年 {viewDate.getMonth() + 1} 月</strong><button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))} aria-label="下个月"><ChevronRight size={22} /></button></div><div className="calendar-grid calendar-grid--head">{weekdays.map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{calendarDays.map(({ date, current }) => { const dateKey = keyOf(date); const selectedDay = dateKey === draft; const isFuture = dateKey > todayKey; return <button className={`calendar-day ${current ? '' : 'is-muted'} ${selectedDay ? 'is-selected' : ''} ${isFuture ? 'is-disabled' : ''}`} key={dateKey} type="button" disabled={isFuture} onClick={() => setDraft(dateKey)}>{date.getDate()}</button> })}</div><button className="date-confirm" type="button" disabled={!draft || draft > todayKey} onClick={confirm}><Check size={18} />完成</button></section></div>}
+    <button className="date-display" type="button" onClick={openPicker} aria-label="选择加班日期">
+      <span className="date-display__icon"><CalendarDays size={17} /></span>
+      <span className="date-display__copy"><strong>{displayValue}</strong><small>{displaySubValue}</small></span>
+      <ChevronRight className="date-display__arrow" size={17} />
+    </button>
+    {open && <Modal onClose={() => setOpen(false)} backdropClassName="date-modal-backdrop" panelClassName="date-modal" ariaLabel="选择加班日期">
+      <header className="date-modal__header">
+        <div>
+          <span className="date-modal__eyebrow">加班日期</span>
+          <h3>{dayWithWeekdayFormatter.format(draftDate)}</h3>
+        </div>
+        <button className="date-modal__close" type="button" onClick={() => setOpen(false)} aria-label="关闭日期选择"><X size={24} /></button>
+      </header>
+      <div className="calendar-toolbar">
+        <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} aria-label="上个月"><ChevronLeft size={22} /></button>
+        <strong>{viewDate.getFullYear()} 年 {viewDate.getMonth() + 1} 月</strong>
+        <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))} aria-label="下个月"><ChevronRight size={22} /></button>
+      </div>
+      <div className="calendar-grid calendar-grid--head">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
+      <div className="calendar-grid">
+        {calendarDays.map(({ date, current }) => {
+          const dateKey = keyOf(date)
+          const selectedDay = dateKey === draft
+          const isFuture = dateKey > todayKey
+          return <button
+            className={`calendar-day ${current ? '' : 'is-muted'} ${selectedDay ? 'is-selected' : ''} ${isFuture ? 'is-disabled' : ''}`}
+            key={dateKey}
+            type="button"
+            disabled={isFuture}
+            onClick={() => setDraft(dateKey)}
+          >{date.getDate()}</button>
+        })}
+      </div>
+      <button className="date-confirm" type="button" disabled={!draft || draft > todayKey} onClick={confirm}><Check size={18} />完成</button>
+    </Modal>}
   </>
-}
+})

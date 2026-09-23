@@ -1,5 +1,5 @@
 export type TaxiProvider = 'taxi' | 'didi' | 'amap' | 'other' | ''
-export type ReimbursementStatus = 'unsubmitted' | 'submitted' | 'paid'
+export type ReimbursementStatus = 'unsubmitted' | 'submitted' | 'rejected' | 'paid'
 
 export type OvertimeRecord = {
   id: string

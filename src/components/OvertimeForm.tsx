@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { CarFront, FileText, Plus, Save } from 'lucide-react'
 import { isWeekendDate, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
 import { localDateKey } from '../overtime'
@@ -20,6 +20,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
+  const handleDateChange = useCallback((date: string) => onChange({ date }), [onChange])
 
   return (
     <section className={`form-panel ${embedded ? 'form-panel--embedded' : ''}`}>
@@ -28,7 +29,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
       <div className="form-fields">
         <label className="field">
           <span>加班日期</span>
-          <DatePicker value={value.date} onChange={(date) => onChange({ date })} />
+          <DatePicker value={value.date} onChange={handleDateChange} />
           {isWeekend ? <small className="weekday-overtime-hint">周末加班，可打车并自动计入 1 天调休</small> : <small className="comp-time-hint">工作日加班，可记录打车报销</small>}
         </label>
         <div className="field">
@@ -56,7 +57,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         {value.tookTaxi && <fieldset className="field field--full fieldset-reset">
           <legend>报销状态</legend>
           <div className="option-radio-group option-radio-group--status">
-            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: option.value === 'paid' ? (value.reimbursementPaidAt || todayKey) : '' })} /><span>{option.label}</span></label>)}
+            {REIMBURSEMENT_STATUS_OPTIONS.map((option) => <label className={`option-radio ${value.reimbursementStatus === option.value ? 'is-selected' : ''}`} key={option.value}><input type="radio" name="reimbursement-status" value={option.value} checked={value.reimbursementStatus === option.value} onChange={() => onChange({ reimbursementStatus: option.value, reimbursementPaidAt: value.reimbursementPaidAt || (option.value === 'paid' ? todayKey : '') })} /><span>{option.label}</span></label>)}
           </div>
         </fieldset>}
         {value.tookTaxi && value.reimbursementStatus === 'paid' && <label className="field field--full">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, isWeekendDate, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, filterRecords, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -82,8 +82,8 @@ describe('record data', () => {
     expect(TAXI_PROVIDER_OPTIONS.map((option) => option.value)).toEqual(['taxi', 'didi', 'amap', 'other'])
   })
 
-  it('offers the three reimbursement states', () => {
-    expect(REIMBURSEMENT_STATUS_OPTIONS.map((option) => option.label)).toEqual(['未申报', '已申报', '已到账'])
+  it('offers the four reimbursement states', () => {
+    expect(REIMBURSEMENT_STATUS_OPTIONS.map((option) => option.label)).toEqual(['未申报', '已申报', '被驳回', '已到账'])
   })
 
   it('keeps the paid date for paid reimbursement records', () => {
@@ -106,7 +106,7 @@ describe('record data', () => {
     ])
   })
 
-  it('sums pending reimbursement amounts for a selected period or all records', () => {
+  it('sums every unpaid reimbursement, including not-yet-submitted ones', () => {
     const records: OvertimeRecord[] = [
       { id: 'aug-pending', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'submitted', note: '' },
       { id: 'aug-paid', date: '2026-08-02', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', note: '' },
@@ -114,8 +114,65 @@ describe('record data', () => {
       { id: 'aug-unsubmitted', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
     ]
 
-    expect(sumPendingReimbursementAmount(records, '2026-08')).toBe(30)
-    expect(sumPendingReimbursementAmount(records, '2026')).toBe(70)
-    expect(sumPendingReimbursementAmount(records)).toBe(70)
+    // 口径是「公司还欠我多少」，所以未申报的 10 元也计入。
+    expect(sumPendingReimbursementAmount(records, '2026-08')).toBe(40)
+    expect(sumPendingReimbursementAmount(records, '2026')).toBe(80)
+    expect(sumPendingReimbursementAmount(records)).toBe(80)
+
+    // 刻意与上面的口径不同：提醒只列「已申报、正在等待打款」的记录。
+    expect(getPendingReimbursements(records, '2026-08-31').map((item) => item.record.id).sort()).toEqual(['aug-pending', 'jul-pending'])
+  })
+
+  it('counts statutory holidays by configured weight and skips make-up workdays', () => {
+    const tables = { statutoryHolidays: { '2026-10-01': 3 }, makeupWorkdays: new Set(['2026-08-08']) }
+
+    expect(getCompTimeDays({ date: '2026-10-01' }, tables)).toBe(3)
+    expect(getCompTimeDays({ date: '2026-08-08' }, tables)).toBe(0)
+    expect(getCompTimeDays({ date: '2026-08-09' }, tables)).toBe(1)
+    expect(getCompTimeDays({ date: '2026-08-10' }, tables)).toBe(0)
+    // 默认表为空，所以国庆当天按工作日处理、不产生调休。
+    expect(getCompTimeDays({ date: '2026-10-01' })).toBe(0)
+    expect(sumCompTimeDays([{ id: 'a', date: '2026-10-01', tookTaxi: false, taxiCost: 0, note: '' }], '2026-10', tables)).toBe(3)
+  })
+
+  it('flags comp-time days that already expired or are about to expire', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'expired', date: '2026-01-03', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: 'soon', date: '2026-07-04', tookTaxi: false, taxiCost: 0, note: '' },
+      { id: 'later', date: '2026-08-08', tookTaxi: false, taxiCost: 0, note: '' },
+    ]
+
+    const entries = listCompTimeEntries(records, '2026-09-23')
+    const byId = (id: string) => entries.find((entry) => entry.record.id === id)
+
+    expect(byId('expired')).toMatchObject({ expiresAt: '2026-04-03', daysLeft: -173, isExpired: true })
+    expect(byId('soon')).toMatchObject({ expiresAt: '2026-10-04', daysLeft: 11, isExpired: false })
+    expect(byId('later')).toMatchObject({ expiresAt: '2026-11-08', daysLeft: 46, isExpired: false })
+  })
+
+  it('filters records by reimbursement status and keyword', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'a', date: '2026-08-01', tookTaxi: true, taxiCost: 30, taxiProvider: 'didi', taxiProviderOther: '', reimbursementStatus: 'submitted', note: '团建' },
+      { id: 'b', date: '2026-08-02', tookTaxi: true, taxiCost: 40, taxiProvider: 'other', taxiProviderOther: '顺风车,拼车', reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', note: '' },
+      { id: 'c', date: '2026-08-03', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '自行回家' },
+    ]
+
+    expect(filterRecords(records, { status: 'submitted', keyword: '' }).map((record) => record.id)).toEqual(['a'])
+    expect(filterRecords(records, { status: 'all', keyword: '顺风车' }).map((record) => record.id)).toEqual(['b'])
+    expect(filterRecords(records, { status: 'all', keyword: '2026-08-10' }).map((record) => record.id)).toEqual(['b'])
+    // 没打车的记录不参与报销状态筛选。
+    expect(filterRecords(records, { status: 'unsubmitted', keyword: '' }).map((record) => record.id)).toEqual([])
+  })
+
+  it('keeps rejected reimbursements in their own actionable bucket', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'rejected', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'rejected', note: '' },
+      { id: 'submitted', date: '2026-08-02', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'submitted', note: '' },
+    ]
+
+    expect(getRejectedReimbursements(records).map((record) => record.id)).toEqual(['rejected'])
+    // 被驳回的钱还没到账，所以计入总额；但它不在「等待打款」列表里。
+    expect(sumPendingReimbursementAmount(records)).toBe(50)
+    expect(getPendingReimbursements(records, '2026-09-23').map((item) => item.record.id)).toEqual(['submitted'])
   })
 })

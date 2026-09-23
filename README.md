@@ -6,12 +6,32 @@
 
 - 记录加班日期、是否打车、打车费用和打车方式。
 - 打车方式支持：的士、滴滴、高德和其他自定义方式。
-- 打车报销状态支持：未申报、已申报、已到账。
-- 已到账的报销可记录实际到账日期，已申报但未到账的记录会在明细中提醒等待天数。
+- 打车报销状态支持：未申报、已申报、被驳回、已到账。
+- 已到账的报销可记录实际到账日期。已申报但未到账的记录会在明细中提醒等待天数，超过 30 天会标记为超期；被驳回的记录单独提示需要重新提交。
 - 按月或按年查看日历总览。
-- 明细跟随当前月份或年份筛选，并按每页 8 条分页显示。
+- 明细跟随当前月份或年份筛选、按报销状态和关键字搜索，并按每页 8 条分页显示。
+- 明细可以导出为 CSV（带 BOM，Excel 直接打开不乱码）或 JSON。
 - 顶部统计当前周期的加班天数、打车天数、打车总费用和未到账费用。
 - 输入 GitHub Token 后，新增、编辑、覆盖和删除记录会自动保存到 GitHub；“保存 GitHub”按钮也会执行同样的版本校验。
+
+## 口径说明
+
+- **未到账费用**：包含「未申报 + 已申报 + 被驳回」三种状态，即「公司还欠我多少」。
+- **等待打款的提醒**：只列「已申报但未到账」的记录，因为它对应的是「哪几笔正在等公司打款」。
+- **调休天数**：默认周末加班计 1 天，法定节假日按配置的权重计（见下节），调休上班日不计。
+
+## 法定节假日表
+
+`src/holidays.ts` 里维护两张表：
+
+```ts
+// 日期 → 当天加班折算的调休天数
+export const STATUTORY_HOLIDAYS: Readonly<Record<string, number>> = {}
+// 法定节假日前后的「调休上班日」，这些日期是正常工作日、不计调休
+export const MAKEUP_WORKDAYS: ReadonlyArray<string> = []
+```
+
+**表体目前为空。** 数据请以国务院办公厅每年发布的《关于X年部分节假日安排的通知》为准；填入前不要凭印象猜测，否则会把调休天数算错。改完表需要重新构建部署。
 
 ## 本地运行
 
@@ -32,16 +52,18 @@ pnpm run dev
 https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json
 ```
 
-读取公开 JSON 不需要 Token。保存数据时需要一个具备目标仓库 `Contents: Read and write` 权限的 GitHub Personal Access Token。Token 只保存在当前浏览器会话中，关闭浏览器后需要重新输入。
+读取这份 JSON 不带认证信息：如果该仓库是 public，任何人都能读到你的加班日期与打车费用；如果是 private，不带 Token 的「读取 GitHub」会失败。
+
+保存数据需要一个具备目标仓库 `Contents: Read and write` 权限的 GitHub Personal Access Token。**Token 保存在浏览器的 localStorage 里，关闭页面后仍然保留** —— 这是个静态站点，任何注入脚本都能读到它。建议把 Token 权限限制到这个仓库，并在「配置 Token」弹窗里用「清除 Token」收回。
 
 保存流程：
 
 1. 在页面点击“保存 GitHub”。
 2. 输入 GitHub Token。
-3. 点击“配置 Token”保存当前会话 Token，再点击“保存 GitHub”提交；应用会读取远程版本并通过 GitHub Contents API 更新 JSON 文件。
-4. 后续记录变更会自动读取远程版本；版本一致才会提交，版本冲突时先读取最新 GitHub 数据。
+3. 点击“配置 Token”保存 Token，再点击“保存 GitHub”提交；应用会读取远程版本并通过 GitHub Contents API 更新 JSON 文件。
+4. 后续记录变更会先去抖合并（连续编辑约 8 秒后合并成一次提交），再读取远程版本；版本一致才会提交，版本冲突时先读取最新 GitHub 数据。
 
-应用不使用 Wrangler、Cloudflare Worker 或 Git 命令保存数据。
+应用不使用 Wrangler、Cloudflare Worker 或 Git 命令保存数据。早期基于 Cloudflare Worker + 密码同步的方案已经删除（`src/sync/` 与空的 `worker/` 目录）。
 
 ## 构建检查
 
@@ -56,4 +78,6 @@ pnpm run build
 
 <https://yatxuan123.github.io/Overtime-Record/>
 
-页面启动时会默认读取项目中的 `data/overtime-records.json`。开发服务器默认允许局域网访问，启动后终端会显示局域网地址。
+页面启动时会默认读取项目中的 `data/overtime-records.json`（也就是构建时打进 `dist/` 的那份快照）。开发服务器默认允许局域网访问，启动后终端会显示局域网地址。
+
+注意这里有一个耦合：因为启动读的是构建快照，**每次记录提交（`data/` 变化）都会触发一次 Pages 重新构建**，否则快照会落后于 GitHub 上的最新数据。工作流在构建前会先跑 `pnpm test`。
