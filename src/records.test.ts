@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, buildYearBreakdown, filterRecords, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sumCompTimeDays, sumPendingReimbursementAmount, summarizeReimbursementTiming, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, buildYearBreakdown, filterRecords, filterRecordsByPeriod, formatCurrency, formatUnpaidReimbursementLabel, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, listUnpaidReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sortUnpaidReimbursements, sumCompTimeDays, sumPendingReimbursementAmount, summarizeReimbursementTiming, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -276,5 +276,103 @@ describe('record data', () => {
 
     // 手工改过的 JSON 可能出现倒挂日期，既不算样本也不产生负数天数。
     expect(summarizeReimbursementTiming(records)).toEqual({ average: null, longest: null, sampleSize: 0 })
+  })
+
+  it('lists every unpaid fare regardless of whether it was already submitted', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'sub-old', date: '2026-07-01', tookTaxi: true, taxiCost: 40, reimbursementStatus: 'submitted', note: '' },
+      { id: 'sub-new', date: '2026-08-20', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'submitted', note: '' },
+      { id: 'rejected', date: '2026-08-10', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'rejected', note: '' },
+      { id: 'unsubmitted', date: '2026-08-15', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+      { id: 'paid', date: '2026-08-01', tookTaxi: true, taxiCost: 50, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-05', note: '' },
+      { id: 'no-taxi', date: '2026-08-02', tookTaxi: false, taxiCost: 0, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    const entries = listUnpaidReimbursements(records, '2026-09-01')
+
+    // 已到账的不算欠款，没打车的记录根本不产生费用。
+    expect(entries.map((entry) => entry.record.id)).toEqual(['sub-old', 'sub-new', 'rejected', 'unsubmitted'])
+    // 只有「已申报」有等待期，另外两种在等我们自己处理。
+    expect(entries.map((entry) => entry.waitingDays)).toEqual([62, 12, null, null])
+    expect(entries.map((entry) => entry.status)).toEqual(['submitted', 'submitted', 'rejected', 'unsubmitted'])
+    // 关键不变量：列表各行相加必须等于弹窗顶部显示的总额。
+    const rowTotal = entries.reduce((sum, entry) => sum + entry.record.taxiCost, 0)
+    expect(rowTotal).toBe(100)
+    expect(rowTotal).toBe(sumPendingReimbursementAmount(records))
+  })
+
+  it('orders unpaid fares by how much attention they need', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'unsubmitted-newer', date: '2026-08-25', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+      { id: 'rejected-older', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'rejected', note: '' },
+      { id: 'submitted-recent', date: '2026-08-28', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'submitted', note: '' },
+    ]
+
+    // 已申报在最前（要催），被驳回次之（要重提），未申报最后；组内已申报按等待天数降序、其余按日期降序。
+    expect(listUnpaidReimbursements(records, '2026-09-01').map((entry) => entry.record.id)).toEqual(['submitted-recent', 'rejected-older', 'unsubmitted-newer'])
+  })
+
+  it('labels the unpaid breakdown in the same order the list shows', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'sub-a', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'submitted', note: '' },
+      { id: 'sub-b', date: '2026-08-02', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'submitted', note: '' },
+      { id: 'rejected', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'rejected', note: '' },
+      { id: 'unsubmitted', date: '2026-08-04', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    expect(formatUnpaidReimbursementLabel(listUnpaidReimbursements(records, '2026-09-01'))).toBe('共 4 笔未到账 · 已申报 2 · 被驳回 1 · 未申报 1')
+    // 计数为 0 的状态不出现，空列表只留总数。
+    expect(formatUnpaidReimbursementLabel(listUnpaidReimbursements([{ id: 'paid', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-05', note: '' }], '2026-09-01'))).toBe('共 0 笔未到账')
+  })
+
+  it('sorts unpaid fares by amount in both directions', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'mid', date: '2026-08-05', tookTaxi: true, taxiCost: 50, reimbursementStatus: 'submitted', note: '' },
+      { id: 'high', date: '2026-08-01', tookTaxi: true, taxiCost: 120, reimbursementStatus: 'unsubmitted', note: '' },
+      { id: 'low', date: '2026-08-09', tookTaxi: true, taxiCost: 20, reimbursementStatus: 'rejected', note: '' },
+    ]
+
+    const entries = listUnpaidReimbursements(records, '2026-09-01')
+
+    expect(sortUnpaidReimbursements(entries, 'amount-desc').map((entry) => entry.record.id)).toEqual(['high', 'mid', 'low'])
+    expect(sortUnpaidReimbursements(entries, 'amount-asc').map((entry) => entry.record.id)).toEqual(['low', 'mid', 'high'])
+  })
+
+  it('breaks amount ties by date so the order stays deterministic', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'older', date: '2026-08-01', tookTaxi: true, taxiCost: 50, reimbursementStatus: 'submitted', note: '' },
+      { id: 'newer', date: '2026-08-20', tookTaxi: true, taxiCost: 50, reimbursementStatus: 'submitted', note: '' },
+    ]
+
+    const entries = listUnpaidReimbursements(records, '2026-09-01')
+
+    expect(sortUnpaidReimbursements(entries, 'amount-desc').map((entry) => entry.record.id)).toEqual(['newer', 'older'])
+    expect(sortUnpaidReimbursements(entries, 'amount-asc').map((entry) => entry.record.id)).toEqual(['newer', 'older'])
+  })
+
+  it('puts the fares that need my own action first when sorting by status', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'submitted', date: '2026-08-01', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'submitted', note: '' },
+      { id: 'rejected', date: '2026-08-02', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'rejected', note: '' },
+      { id: 'unsubmitted', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    const entries = listUnpaidReimbursements(records, '2026-09-01')
+
+    // 未申报要自己动手提交，排最前；已申报是在等公司；被驳回排最后。
+    expect(sortUnpaidReimbursements(entries, 'status').map((entry) => entry.record.id)).toEqual(['unsubmitted', 'submitted', 'rejected'])
+  })
+
+  it('keeps the urgency order as the default sort', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'submitted-recent', date: '2026-08-28', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'submitted', note: '' },
+      { id: 'rejected', date: '2026-08-02', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'rejected', note: '' },
+      { id: 'unsubmitted', date: '2026-08-03', tookTaxi: true, taxiCost: 10, reimbursementStatus: 'unsubmitted', note: '' },
+    ]
+
+    const entries = listUnpaidReimbursements(records, '2026-09-01')
+
+    // 默认排序必须与 listUnpaidReimbursements 自带的顺序一致，否则「默认」会名不副实。
+    expect(sortUnpaidReimbursements(entries, 'urgency').map((entry) => entry.record.id)).toEqual(entries.map((entry) => entry.record.id))
   })
 })

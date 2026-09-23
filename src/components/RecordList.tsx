@@ -1,9 +1,10 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2, X } from 'lucide-react'
-import { filterRecords, filterRecordsByPeriod, formatCurrency, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, NORMAL_REIMBURSEMENT_WINDOW_DAYS, paginateRecords, REIMBURSEMENT_STATUS_OPTIONS, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
+import { filterRecords, filterRecordsByPeriod, formatCurrency, formatUnpaidReimbursementLabel, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, listUnpaidReimbursements, NORMAL_REIMBURSEMENT_WINDOW_DAYS, paginateRecords, REIMBURSEMENT_STATUS_OPTIONS, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord, ReimbursementStatus } from '../types'
 import { Modal } from './Modal'
+import { PendingReimbursementList } from './PendingReimbursementList'
 
 type RecordListProps = { records: OvertimeRecord[]; period: string; periodLabel: string; embedded?: boolean; showHeading?: boolean; onEdit: (record: OvertimeRecord) => void; onDelete: (record: OvertimeRecord) => void }
 
@@ -25,6 +26,8 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
   const visibleRecords = useMemo(() => paginateRecords(filteredRecords, currentPage, PAGE_SIZE), [currentPage, filteredRecords])
   const pendingReimbursements = useMemo(() => getPendingReimbursements(records, today), [records, today])
   const rejectedRecords = useMemo(() => getRejectedReimbursements(records), [records])
+  // 注意与上面 pendingReimbursements 的区别：待办面板讲「已申报待打款」，弹窗列全部未到账。
+  const unpaidReimbursements = useMemo(() => listUnpaidReimbursements(records, today), [records, today])
   const pendingAmount = useMemo(() => sumPendingReimbursementAmount(records, period), [period, records])
   const allPendingAmount = useMemo(() => sumPendingReimbursementAmount(records), [records])
   const overduePending = useMemo(() => pendingReimbursements.filter((item) => item.waitingDays > NORMAL_REIMBURSEMENT_WINDOW_DAYS), [pendingReimbursements])
@@ -123,26 +126,10 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
         <button className="icon-button" type="button" onClick={() => setIsPendingDetailsOpen(false)} aria-label="关闭未到账费用明细" title="关闭"><X size={18} /></button>
       </header>
       <div className="pending-detail-modal__summary">
-        <span>共 {pendingReimbursements.length} 笔等待打款 · 未到账总额含未申报</span>
+        <span>{formatUnpaidReimbursementLabel(unpaidReimbursements)}</span>
         <strong>¥{formatCurrency(allPendingAmount)}</strong>
       </div>
-      <div className="pending-detail-list">
-        {pendingReimbursements.map(({ record, waitingDays }) => <button
-          className="pending-detail-row"
-          type="button"
-          key={record.id}
-          onClick={() => { setIsPendingDetailsOpen(false); onEdit(record) }}
-          aria-label={`编辑 ${record.date} 未到账费用`}
-        >
-          <span className="pending-detail-date">
-            <strong>{record.date}</strong>
-            <small className={waitingDays > NORMAL_REIMBURSEMENT_WINDOW_DAYS ? 'is-overdue' : ''}>已等待 {waitingDays} 天{waitingDays > NORMAL_REIMBURSEMENT_WINDOW_DAYS ? ' · 已超期' : ''}</small>
-          </span>
-          <span className="pending-detail-provider">{taxiProviderLabel(record)}</span>
-          <span className="pending-detail-status">{reimbursementStatusLabel(record.reimbursementStatus)}</span>
-          <strong className="pending-detail-amount">¥{formatCurrency(record.taxiCost)}</strong>
-        </button>)}
-      </div>
+      <PendingReimbursementList entries={unpaidReimbursements} onSelect={(record) => { setIsPendingDetailsOpen(false); onEdit(record) }} />
     </Modal>}
   </>
 })

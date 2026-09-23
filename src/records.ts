@@ -34,6 +34,10 @@ export type YearBreakdown = { months: MonthBreakdown[]; days: number; compDays: 
 
 export type ReimbursementTiming = { average: number | null; longest: number | null; sampleSize: number }
 
+export type UnpaidReimbursement = { record: OvertimeRecord; status: ReimbursementStatus; waitingDays: number | null }
+
+export type UnpaidSort = 'urgency' | 'amount-desc' | 'amount-asc' | 'status'
+
 export type RecordFilter = { status: ReimbursementStatus | 'all'; keyword: string }
 
 const currencyFormatter = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 })
@@ -155,6 +159,53 @@ export function getPendingReimbursements(records: OvertimeRecord[], today: strin
     .filter((record) => record.tookTaxi && record.reimbursementStatus === 'submitted' && record.date <= today)
     .map((record) => ({ record, waitingDays: differenceInDays(record.date, today) }))
     .sort((left, right) => right.waitingDays - left.waitingDays)
+}
+
+// 默认（紧急度）：已申报排最前，等最久的在最上；被驳回次之（要重提）；未申报最后。
+const URGENCY_ORDER: Record<ReimbursementStatus, number> = { submitted: 0, rejected: 1, unsubmitted: 2, paid: 3 }
+// 按状态排：未申报排最前 —— 那一组要自己动手提交，已申报则是在等公司。
+const ACTION_ORDER: Record<ReimbursementStatus, number> = { unsubmitted: 0, submitted: 1, rejected: 2, paid: 3 }
+
+function compareByUrgency(left: UnpaidReimbursement, right: UnpaidReimbursement): number {
+  if (URGENCY_ORDER[left.status] !== URGENCY_ORDER[right.status]) return URGENCY_ORDER[left.status] - URGENCY_ORDER[right.status]
+  // 已申报按等待天数降序（等最久的最该催），其余按日期降序（新的在前）。
+  if (left.status === 'submitted') return (right.waitingDays ?? 0) - (left.waitingDays ?? 0)
+  return right.record.date.localeCompare(left.record.date)
+}
+
+// 「未到账费用明细」的列表来源：与 sumPendingReimbursementAmount 同口径（tookTaxi && status !== 'paid'），
+// 所以列表各行金额相加必然等于弹窗顶部那个总额。
+// 刻意与 getPendingReimbursements 分开：那个只列「已申报待打款」，服务报销待办里的催款提醒与超期告警；
+// 这个列全部未到账（含未申报与被驳回），服务「公司还欠我多少」的逐笔查看。
+export function listUnpaidReimbursements(records: OvertimeRecord[], today: string): UnpaidReimbursement[] {
+  return records
+    .filter((record) => record.tookTaxi && record.reimbursementStatus !== 'paid')
+    .map((record): UnpaidReimbursement => {
+      const status = record.reimbursementStatus ?? 'unsubmitted'
+      // 只有「已申报」有等待期；未申报与被驳回都还没进入打款流程。
+      return { record, status, waitingDays: status === 'submitted' ? differenceInDays(record.date, today) : null }
+    })
+    .sort(compareByUrgency)
+}
+
+// 明细列表的排序方式。除默认（urgency）外的三种都重排；金额相同的用日期降序打破平局，
+// 保证同一份数据每次渲染的顺序一致，不会因为排序不稳定而抖动。
+export function sortUnpaidReimbursements(entries: UnpaidReimbursement[], sortBy: UnpaidSort): UnpaidReimbursement[] {
+  const sorted = [...entries]
+  const byDateDesc = (left: UnpaidReimbursement, right: UnpaidReimbursement) => right.record.date.localeCompare(left.record.date)
+  if (sortBy === 'amount-desc') return sorted.sort((left, right) => right.record.taxiCost - left.record.taxiCost || byDateDesc(left, right))
+  if (sortBy === 'amount-asc') return sorted.sort((left, right) => left.record.taxiCost - right.record.taxiCost || byDateDesc(left, right))
+  if (sortBy === 'status') return sorted.sort((left, right) => ACTION_ORDER[left.status] - ACTION_ORDER[right.status] || byDateDesc(left, right))
+  return sorted.sort(compareByUrgency)
+}
+
+// 顶部那句「共 N 笔未到账 · 已申报 X · …」。状态顺序取传入列表的实际出现顺序，
+// 这样文案顺序天然与列表从上往下一致；计数为 0 的状态不出现。
+export function formatUnpaidReimbursementLabel(entries: UnpaidReimbursement[]): string {
+  const counts = new Map<ReimbursementStatus, number>()
+  for (const entry of entries) counts.set(entry.status, (counts.get(entry.status) ?? 0) + 1)
+  const parts = [...counts].map(([status, count]) => `${reimbursementStatusLabel(status)} ${count}`)
+  return [`共 ${entries.length} 笔未到账`, ...parts].join(' · ')
 }
 
 // 被驳回的记录需要你重新提交，和「等待打款」是两种不同的待办。
