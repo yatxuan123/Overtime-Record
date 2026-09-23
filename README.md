@@ -58,7 +58,7 @@ pnpm run dev
 https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json
 ```
 
-读取这份 JSON 不带认证信息：如果该仓库是 public，任何人都能读到你的加班日期与打车费用；如果是 private，不带 Token 的「读取 GitHub」会失败。
+读取这份 JSON 不带认证信息：如果该仓库是 public，任何人都能读到你的加班日期与打车费用。**页面每次加载都会自动拉取这份 JSON**（见「部署」一节），所以仓库转成 private 之后，未认证的读取会失败并回退到构建快照。
 
 保存数据需要一个具备目标仓库 `Contents: Read and write` 权限的 GitHub Personal Access Token。**Token 保存在浏览器的 localStorage 里，关闭页面后仍然保留** —— 这是个静态站点，任何注入脚本都能读到它。建议把 Token 权限限制到这个仓库，并在「配置 Token」弹窗里用「清除 Token」收回。
 
@@ -84,6 +84,8 @@ pnpm run build
 
 <https://yatxuan123.github.io/Overtime-Record/>
 
-页面启动时会默认读取项目中的 `data/overtime-records.json`（也就是构建时打进 `dist/` 的那份快照）。开发服务器默认允许局域网访问，启动后终端会显示局域网地址。
+页面加载分两步：先用构建时打进 `dist/` 的快照（`data/overtime-records.json`）立刻渲染，首屏不等网络；随后自动拉取 GitHub 上的实时 JSON，只有版本号更大才覆盖。远端不可用时（离线、仓库转 private、文件被删）静默保留快照。点「读取 GitHub」也可以手动拉取。
 
-注意这里有一个耦合：因为启动读的是构建快照，**每次记录提交（`data/` 变化）都会触发一次 Pages 重新构建**，否则快照会落后于 GitHub 上的最新数据。工作流在构建前会先跑 `pnpm test`。
+开发服务器默认允许局域网访问，启动后终端会显示局域网地址。
+
+`data/overtime-records.json` 的提交**不会**触发 Pages 重新构建（见 `.github/workflows/deploy.yml` 的 `paths-ignore`）—— 页面启动时自己会拉最新数据，不依赖构建快照。快照只作离线兜底，跟着代码提交刷新就够了。工作流在构建前会先跑 `pnpm test`。

@@ -12,7 +12,8 @@ import { loadRecords, loadRemoteToken, loadRemoteVersion, saveRecords, saveRemot
 import type { OvertimeRecord, RecordFormValue } from './types'
 import { buildRecordSummary, formatCurrency, sumCompTimeDays, sumPendingReimbursementAmount } from './records'
 import { createRecordId, findRecordByDate, localDateKey } from './overtime'
-import { DEFAULT_REMOTE_URL, loadLocalRecordsSnapshot, loadRemoteRecordsSnapshot, saveRemoteRecords } from './remote'
+import { DEFAULT_REMOTE_URL, loadLocalRecordsSnapshot, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteRecords } from './remote'
+import type { RemoteRecordsSnapshot } from './remote'
 import { closedRecordModalState } from './modalState'
 import { downloadTextFile, recordsToCsv, recordsToJson } from './export'
 
@@ -66,24 +67,49 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
+    let messageTimer: number | null = null
+
+    // 写入一份启动数据：同时更新状态、浏览器缓存和远端版本号（版本号供后续保存的冲突校验用）。
+    const applyStartupSnapshot = (snapshot: RemoteRecordsSnapshot, message: string) => {
+      remoteVersionRef.current = snapshot.version
+      saveRemoteVersion(window.sessionStorage, snapshot.version)
+      setRecords(snapshot.records)
+      saveRecords(snapshot.records)
+      setRemoteMessage(message)
+      if (messageTimer !== null) window.clearTimeout(messageTimer)
+      messageTimer = window.setTimeout(() => { setRemoteMessage(''); messageTimer = null }, 2200)
+    }
+
     const loadInitialRecords = async () => {
+      // 阶段一：先用构建快照渲染，首屏不等远端。
+      let local: RemoteRecordsSnapshot | null = null
       try {
-        const snapshot = await loadLocalRecordsSnapshot()
+        local = await loadLocalRecordsSnapshot()
         if (cancelled) return
-        remoteVersionRef.current = snapshot.version
-        saveRemoteVersion(window.sessionStorage, snapshot.version)
-        setRecords(snapshot.records)
-        saveRecords(snapshot.records)
-        setRemoteMessage(`已从 data/overtime-records.json 读取 ${snapshot.records.length} 条记录（v${snapshot.version}）`)
-        window.setTimeout(() => setRemoteMessage(''), 2200)
+        applyStartupSnapshot(local, `已从 data/overtime-records.json 读取 ${local.records.length} 条记录（v${local.version}）`)
       } catch {
         if (!cancelled) setRemoteMessage('本地数据读取失败，已使用浏览器缓存')
       } finally {
         if (!cancelled) setIsInitialLoading(false)
       }
+
+      // 阶段二：再拉 GitHub 实时数据，比快照新才采用；离线或仓库不可读时静默保留快照。
+      try {
+        const remote = await loadRemoteRecordsSnapshot()
+        if (cancelled) return
+        if (pickFresherSnapshot(local ?? { records: [], version: 0 }, remote) === remote) {
+          applyStartupSnapshot(remote, `已自动同步 GitHub 最新数据（v${remote.version}）`)
+        }
+      } catch {
+        // 保持快照即可，不打扰用户。
+      }
     }
+
     void loadInitialRecords()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      if (messageTimer !== null) window.clearTimeout(messageTimer)
+    }
   }, [])
 
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records])
@@ -299,7 +325,7 @@ function App() {
       />}
 
       {notice && <div className={`toast toast--${notice.tone}`} role="status">{notice.message}</div>}
-      <footer className="footer-note">{remoteMessage || '数据保存在本机浏览器并同步到 GitHub · 页面加载时读的是部署快照，点「读取 GitHub」可拉取最新'}</footer>
+      <footer className="footer-note">{remoteMessage || '数据保存在本机浏览器并同步到 GitHub · 页面加载时自动同步 GitHub 最新数据'}</footer>
     </main>
   </div>
 }

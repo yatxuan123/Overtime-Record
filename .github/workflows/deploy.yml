@@ -3,6 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # 只改 data/overtime-records.json 的提交不必重新构建：页面启动时会自己拉取 GitHub 上的
+    # 最新 JSON（见 src/remote.ts 的 pickFresherSnapshot），构建快照只作离线兜底。
+    paths-ignore:
+      - 'data/**'
   workflow_dispatch:
 
 permissions:

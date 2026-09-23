@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, loadRemoteRecordsSnapshot, saveRemoteRecords } from './remote'
+import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteRecords } from './remote'
 import type { OvertimeRecord } from './types'
 
 const records: OvertimeRecord[] = [{ id: '1', date: '2026-08-08', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', note: '测试' }]
@@ -72,5 +72,36 @@ describe('GitHub remote JSON storage', () => {
 
   it('includes GitHub permission details for forbidden saves', async () => {
     await expect(saveRemoteRecords(records, 'token', async () => Response.json({ message: 'Resource not accessible by personal access token' }, { status: 403 }))).rejects.toThrow('GitHub 拒绝写入：Resource not accessible by personal access token')
+  })
+})
+
+describe('pickFresherSnapshot', () => {
+  const snapshot = (version: number) => ({ records, version })
+
+  it('takes the remote snapshot when it is newer', () => {
+    const remote = { records: [{ ...records[0], id: 'remote' }], version: 7 }
+    expect(pickFresherSnapshot(snapshot(5), remote)).toBe(remote)
+  })
+
+  it('keeps the local snapshot when both sides are on the same version', () => {
+    const local = snapshot(5)
+    expect(pickFresherSnapshot(local, snapshot(5))).toBe(local)
+  })
+
+  it('keeps the local snapshot when the remote file is missing', () => {
+    // loadRemoteRecordsSnapshot 对 404 返回空数据而不是抛错，这里必须挡住，
+    // 否则启动时会显示空列表并把浏览器缓存清掉。
+    const local = snapshot(5)
+    expect(pickFresherSnapshot(local, { records: [], version: 0 })).toBe(local)
+  })
+
+  it('takes the remote snapshot when the local snapshot could not be read', () => {
+    const remote = snapshot(5)
+    expect(pickFresherSnapshot({ records: [], version: 0 }, remote)).toBe(remote)
+  })
+
+  it('keeps the local snapshot when it is ahead of a stale remote file', () => {
+    const local = snapshot(7)
+    expect(pickFresherSnapshot(local, snapshot(5))).toBe(local)
   })
 })

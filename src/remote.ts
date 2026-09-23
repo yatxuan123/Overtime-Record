@@ -34,6 +34,18 @@ export async function loadRemoteRecordsSnapshot(remoteUrl = DEFAULT_REMOTE_URL, 
   return parseRecordsSnapshot(data, '远程')
 }
 
+/**
+ * 启动时在「构建快照」和「GitHub 实时数据」之间挑一份用。
+ *
+ * 只有远端版本号更大才采用远端。这里必须用 `>` 而不是「有数据就用」，因为
+ * loadRemoteRecordsSnapshot 遇到 404 会返回 { records: [], version: 0 } 而不是抛错 ——
+ * 用 `>` 能顺带挡住「远端读不到」和「与快照同版本」两种情况，避免用空数据覆盖快照、
+ * 清空浏览器缓存。
+ */
+export function pickFresherSnapshot(local: RemoteRecordsSnapshot, remote: RemoteRecordsSnapshot): RemoteRecordsSnapshot {
+  return remote.version > local.version ? remote : local
+}
+
 export async function saveRemoteRecords(records: OvertimeRecord[], token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL, expectedVersion?: number): Promise<RemoteSaveResult> {
   if (!token.trim()) throw new Error('请输入 GitHub Token')
   const apiUrl = toContentsApiUrl(remoteUrl)
