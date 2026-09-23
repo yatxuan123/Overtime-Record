@@ -1,5 +1,5 @@
 {
-  "version": 30,
+  "version": 31,
   "records": [
     {
       "id": "d5ed76f0-f53b-424f-be8d-6abbd71cf810",
@@ -38,7 +38,8 @@
       "taxiCost": 112.6,
       "taxiProvider": "taxi",
       "taxiProviderOther": "",
-      "reimbursementStatus": "unsubmitted",
+      "reimbursementStatus": "submitted",
+      "reimbursementPaidAt": "",
       "note": ""
     },
     {
