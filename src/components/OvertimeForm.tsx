@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react'
 import { CarFront, FileText, Plus, Save } from 'lucide-react'
-import { isWeekendDate, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
+import { getCompTimeDays, REIMBURSEMENT_STATUS_OPTIONS, TAXI_PROVIDER_OPTIONS } from '../records'
 import { localDateKey } from '../overtime'
 import type { RecordFormValue } from '../types'
 import { DatePicker } from './DatePicker'
@@ -16,7 +16,8 @@ type OvertimeFormProps = {
 
 export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error, embedded = false, onChange, onSubmit }: OvertimeFormProps) {
   const todayKey = localDateKey()
-  const isWeekend = isWeekendDate(value.date)
+  // 用调休口径而不是周末口径：法定放假日可能落在工作日，调休上班日可能落在周末。
+  const compDays = getCompTimeDays({ date: value.date })
   const toggleTaxi = () => onChange(value.tookTaxi
     ? { tookTaxi: false, taxiCost: '', taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' }
     : { tookTaxi: true, taxiProvider: 'taxi', reimbursementStatus: 'unsubmitted', reimbursementPaidAt: '' })
@@ -30,7 +31,7 @@ export const OvertimeForm = memo(function OvertimeForm({ value, isEditing, error
         <label className="field">
           <span>加班日期</span>
           <DatePicker value={value.date} onChange={handleDateChange} />
-          {isWeekend ? <small className="weekday-overtime-hint">周末加班，可打车并自动计入 1 天调休</small> : <small className="comp-time-hint">工作日加班，可记录打车报销</small>}
+          {compDays > 0 ? <small className="weekday-overtime-hint">休息日加班，可打车并自动计入 {compDays} 天调休</small> : <small className="comp-time-hint">工作日加班，可记录打车报销</small>}
         </label>
         <div className="field">
           <span>回家方式</span>

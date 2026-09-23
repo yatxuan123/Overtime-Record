@@ -43,11 +43,11 @@ export function isWeekendDate(dateKey: string): boolean {
   return day === 0 || day === 6
 }
 
-// 调休天数按优先级判定：调休上班日 → 0；法定节假日 → 查表权重（默认 1）；周末 → 1；其余 → 0。
+// 调休天数按优先级判定：调休上班日 → 0；放假日 → 查表权重；周末 → 1；其余 → 0。
 export function getCompTimeDays(record: Pick<OvertimeRecord, 'date'>, tables: HolidayTables = DEFAULT_HOLIDAY_TABLES): number {
   if (tables.makeupWorkdays.has(record.date)) return 0
-  const statutoryWeight = tables.statutoryHolidays[record.date]
-  if (typeof statutoryWeight === 'number') return statutoryWeight
+  const holidayWeight = tables.holidayDates[record.date]
+  if (typeof holidayWeight === 'number') return holidayWeight
   return isWeekendDate(record.date) ? 1 : 0
 }
 

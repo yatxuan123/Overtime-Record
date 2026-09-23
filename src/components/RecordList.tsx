@@ -91,7 +91,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
                 <button className="record-main record-edit-trigger" type="button" onClick={() => onEdit(record)} aria-label={`编辑 ${record.date} 的加班记录`}>
                   <div className="record-title">
                     <strong>{record.note || '未填写备注'}</strong>
-                    {getCompTimeDays(record) > 0 && <span className="record-badge record-badge--comp-time">周末加班 · 调休 {getCompTimeDays(record)} 天</span>}
+                    {getCompTimeDays(record) > 0 && <span className="record-badge record-badge--comp-time">调休 {getCompTimeDays(record)} 天</span>}
                     <span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span>
                     {record.tookTaxi && <span className={`record-status record-status--${record.reimbursementStatus || 'unsubmitted'}`}>{reimbursementStatusLabel(record.reimbursementStatus)}</span>}
                   </div>

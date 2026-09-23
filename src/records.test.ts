@@ -123,16 +123,27 @@ describe('record data', () => {
     expect(getPendingReimbursements(records, '2026-08-31').map((item) => item.record.id).sort()).toEqual(['aug-pending', 'jul-pending'])
   })
 
-  it('counts statutory holidays by configured weight and skips make-up workdays', () => {
-    const tables = { statutoryHolidays: { '2026-10-01': 3 }, makeupWorkdays: new Set(['2026-08-08']) }
+  it('counts holiday dates by configured weight and skips make-up workdays', () => {
+    const tables = { holidayDates: { '2026-10-01': 3 }, makeupWorkdays: new Set(['2026-08-08']) }
 
     expect(getCompTimeDays({ date: '2026-10-01' }, tables)).toBe(3)
     expect(getCompTimeDays({ date: '2026-08-08' }, tables)).toBe(0)
     expect(getCompTimeDays({ date: '2026-08-09' }, tables)).toBe(1)
     expect(getCompTimeDays({ date: '2026-08-10' }, tables)).toBe(0)
-    // 默认表为空，所以国庆当天按工作日处理、不产生调休。
-    expect(getCompTimeDays({ date: '2026-10-01' })).toBe(0)
     expect(sumCompTimeDays([{ id: 'a', date: '2026-10-01', tookTaxi: false, taxiCost: 0, note: '' }], '2026-10', tables)).toBe(3)
+  })
+
+  it('applies the shipped 2026 holiday tables', () => {
+    // 国庆当天（周四）是放假日，加班计 1 天。
+    expect(getCompTimeDays({ date: '2026-10-01' })).toBe(1)
+    // 1月4日（周日）是调休上班日，加班不计调休。
+    expect(getCompTimeDays({ date: '2026-01-04' })).toBe(0)
+    // 春节假期内的周五 2月20日 是放假日，计 1 天。
+    expect(getCompTimeDays({ date: '2026-02-20' })).toBe(1)
+    // 春节假期内的周六 2月21日 按周末计 1 天。
+    expect(getCompTimeDays({ date: '2026-02-21' })).toBe(1)
+    // 普通工作日不计调休。
+    expect(getCompTimeDays({ date: '2026-03-10' })).toBe(0)
   })
 
   it('flags comp-time days that already expired or are about to expire', () => {

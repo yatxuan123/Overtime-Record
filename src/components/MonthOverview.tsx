@@ -103,6 +103,7 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
         const date = `${year}-${pad(month + 1)}-${pad(day)}`
         const record = monthView.recordMap.get(date)
         const reimbursementStatus = record?.reimbursementStatus || 'unsubmitted'
+        const compDays = record ? getCompTimeDays(record) : 0
         const isFuture = date > todayKey
         const ariaLabel = isFuture ? `${date} 暂不允许记录未来日期` : record ? `编辑 ${date} 的加班记录${record.tookTaxi ? `，打车，${reimbursementStatusLabel(reimbursementStatus)}` : ''}` : `新增 ${date} 的加班记录`
         return <button
@@ -116,11 +117,11 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
           <strong>{day}</strong>
           {record && (displayMode === 'indicators' ? <div className="overview-day__indicators">
             <i className="calendar-indicator calendar-indicator--overtime" role="img" aria-label="加班" title="加班" />
-            {getCompTimeDays(record) > 0 && <i className="calendar-indicator calendar-indicator--comp-time" role="img" aria-label="调休 1 天" title="调休 1 天" />}
+            {compDays > 0 && <i className="calendar-indicator calendar-indicator--comp-time" role="img" aria-label={`调休 ${compDays} 天`} title={`调休 ${compDays} 天`} />}
             {record.tookTaxi && <i className={`calendar-indicator calendar-indicator--taxi calendar-indicator--${reimbursementStatus}`} role="img" aria-label={`打车，${reimbursementStatusLabel(reimbursementStatus)}`} title={`打车，${reimbursementStatusLabel(reimbursementStatus)}`} />}
           </div> : <div className="overview-day__text">
             <span>加班</span>
-            {getCompTimeDays(record) > 0 && <span>调休 1 天</span>}
+            {compDays > 0 && <span>调休 {compDays} 天</span>}
             {record.tookTaxi && <span>打车 · {reimbursementStatusLabel(reimbursementStatus)}</span>}
             {record.tookTaxi && <span>¥{formatCurrency(record.taxiCost)}</span>}
           </div>)}
