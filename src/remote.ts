@@ -20,18 +20,33 @@ export async function loadLocalRecordsSnapshot(localUrl = DEFAULT_LOCAL_DATA_URL
   return parseRecordsSnapshot(data, '本地')
 }
 
-export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
-  const snapshot = await loadRemoteRecordsSnapshot(remoteUrl, fetchImpl)
+export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch, token = ''): Promise<OvertimeRecord[]> {
+  const snapshot = await loadRemoteRecordsSnapshot(remoteUrl, fetchImpl, token)
   return snapshot.records
 }
 
-export async function loadRemoteRecordsSnapshot(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch): Promise<RemoteRecordsSnapshot> {
-  const cacheBustedUrl = `${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
-  const response = await fetchImpl(cacheBustedUrl, { cache: 'no-store' })
+/**
+ * 通过 GitHub Contents API 读取远程 JSON。
+ *
+ * 不能用 raw.githubusercontent.com：那条链路的 CDN（Fastly）按路径缓存 5 分钟且忽略 query，
+ * 追加 `?v=` 只能绕浏览器缓存、绕不过 CDN —— 刚保存完立刻读取会拿到旧版本。Contents API 未认证时
+ * 只缓存 60 秒，带上 Token 后是私有响应、不经共享缓存，和保存时的版本校验走同一来源，读到的即最新。
+ */
+export async function loadRemoteRecordsSnapshot(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch, token = ''): Promise<RemoteRecordsSnapshot> {
+  const trimmedToken = token.trim()
+  const response = await fetchImpl(toContentsApiUrl(remoteUrl), {
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      ...(trimmedToken ? { Authorization: `Bearer ${trimmedToken}` } : {}),
+    },
+  })
   if (response.status === 404) return { records: [], version: 0 }
+  if (response.status === 401) throw new Error('GitHub Token 无效')
+  if (response.status === 403) throw new Error(`GitHub 拒绝读取：${await githubMessage(response)}`)
   if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
   const data: unknown = await response.json()
-  return parseRecordsSnapshot(data, '远程')
+  return parseContentsResponse(data)
 }
 
 /**
@@ -89,6 +104,18 @@ function parseRecordsSnapshot(data: unknown, source: string): RemoteRecordsSnaps
     return { records: normalizeRecords((data as { records: unknown[] }).records), version: typeof version === 'number' ? version : 1 }
   }
   throw new Error(`${source} JSON 格式无效`)
+}
+
+function parseContentsResponse(value: unknown): RemoteRecordsSnapshot {
+  const content = value && typeof value === 'object' ? (value as { content?: unknown }).content : undefined
+  if (typeof content !== 'string' || !content.trim()) throw new Error('远程 JSON 格式无效')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(decodeBase64(content))
+  } catch {
+    throw new Error('远程 JSON 格式无效')
+  }
+  return parseRecordsSnapshot(parsed, '远程')
 }
 
 function getContentsVersion(value: unknown): number {

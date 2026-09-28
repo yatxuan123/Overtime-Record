@@ -22,23 +22,46 @@ describe('GitHub remote JSON storage', () => {
     expect(loaded).toEqual([{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }])
   })
 
-  it('loads public JSON only when explicitly requested', async () => {
+  it('loads public JSON through the GitHub Contents API', async () => {
     let requestedUrl = ''
     const loaded = await loadRemoteRecords(DEFAULT_REMOTE_URL, async (input) => {
       requestedUrl = String(input)
-      return Response.json(records)
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 3, records })), encoding: 'base64' })
     })
     const parsedUrl = new URL(requestedUrl)
-    expect(`${parsedUrl.origin}${parsedUrl.pathname}`).toBe(DEFAULT_REMOTE_URL)
-    const cacheBust = parsedUrl.searchParams.get('v')
-    expect(cacheBust).not.toBeNull()
-    expect(cacheBust).toMatch(/^\d+$/)
+    expect(parsedUrl.hostname).toBe('api.github.com')
+    expect(parsedUrl.pathname).toBe('/repos/yatxuan123/Overtime-Record/contents/data/overtime-records.json')
+    expect(parsedUrl.searchParams.get('ref')).toBe('main')
     expect(loaded).toEqual([{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }])
   })
 
-  it('reads the version from the remote JSON envelope', async () => {
-    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ version: 7, records }))
+  it('decodes the version from the Contents API envelope', async () => {
+    const content = encodeContent(JSON.stringify({ version: 7, records }))
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ sha: 'current-sha', content, encoding: 'base64' }))
     expect(snapshot).toEqual({ version: 7, records: [{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }] })
+  })
+
+  it('sends the stored GitHub token when reading remote JSON', async () => {
+    let authorization: string | null = null
+    await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
+      authorization = new Request(input, init).headers.get('authorization')
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 1, records })), encoding: 'base64' })
+    }, 'secret-token')
+    expect(authorization).toBe('Bearer secret-token')
+  })
+
+  it('returns an empty snapshot when the remote file does not exist yet', async () => {
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => new Response(null, { status: 404 }))
+    expect(snapshot).toEqual({ records: [], version: 0 })
+  })
+
+  it('rejects a remote version number that is not a positive integer', async () => {
+    const content = encodeContent(JSON.stringify({ version: 0, records }))
+    await expect(loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ sha: 'current-sha', content, encoding: 'base64' }))).rejects.toThrow('远程 JSON 版本号无效')
+  })
+
+  it('surfaces an authorization error when the stored token is rejected', async () => {
+    await expect(loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ message: 'Bad credentials' }, { status: 401 }), 'bad-token')).rejects.toThrow('GitHub Token 无效')
   })
 
   it('reads the current file SHA and commits JSON through GitHub Contents API', async () => {

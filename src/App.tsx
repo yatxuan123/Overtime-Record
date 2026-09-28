@@ -95,7 +95,7 @@ function App() {
 
       // 阶段二：再拉 GitHub 实时数据，比快照新才采用；离线或仓库不可读时静默保留快照。
       try {
-        const remote = await loadRemoteRecordsSnapshot()
+        const remote = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, fetch, loadRemoteToken())
         if (cancelled) return
         if (pickFresherSnapshot(local ?? { records: [], version: 0 }, remote) === remote) {
           applyStartupSnapshot(remote, `已自动同步 GitHub 最新数据（v${remote.version}）`)
@@ -239,7 +239,7 @@ function App() {
     showNotice(`已导出 ${count} 条记录为 JSON`, 'success')
   }, [showNotice, sortedRecords])
 
-  const loadRemote = useCallback(() => loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL), [])
+  const loadRemote = useCallback(() => loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, fetch, loadRemoteToken()), [])
   const handleRemoteLoaded = useCallback((snapshot: { records: OvertimeRecord[]; version: number }) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); saveRecords(snapshot.records); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
   const saveRemote = useCallback(async (token: string) => {
     cancelScheduledSync()
