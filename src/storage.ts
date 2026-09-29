@@ -1,4 +1,4 @@
-import type { OvertimeRecord } from './types'
+import type { OvertimeRecord, ReimbursementSnapshot } from './types'
 import { normalizeRecord } from './records'
 
 const STORAGE_KEY = 'overtime-records-v1'
@@ -26,20 +26,37 @@ export function saveRemoteVersion(storage: Storage, version: number): void {
 }
 
 export function loadRecords(): OvertimeRecord[] {
+  return loadReimbursementSnapshot().records
+}
+
+export function loadReimbursementSnapshot(storage: Storage = window.localStorage): ReimbursementSnapshot {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
+    const raw = storage.getItem(STORAGE_KEY)
+    if (!raw) return { records: [], reimbursementBatches: [], reimbursementPolicy: { mode: 'legacy' } }
     const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.map(normalizeRecord).filter((record): record is OvertimeRecord => record !== null)
+    if (Array.isArray(parsed)) return { records: parsed.map(normalizeRecord).filter((record): record is OvertimeRecord => record !== null), reimbursementBatches: [], reimbursementPolicy: { mode: 'legacy' } }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as { records?: unknown }).records)) return { records: [], reimbursementBatches: [], reimbursementPolicy: { mode: 'legacy' } }
+    const value = parsed as { records: unknown[]; reimbursementBatches?: unknown; reimbursementPolicy?: unknown }
+    return {
+      records: value.records.map(normalizeRecord).filter((record): record is OvertimeRecord => record !== null),
+      reimbursementBatches: Array.isArray(value.reimbursementBatches) ? value.reimbursementBatches as ReimbursementSnapshot['reimbursementBatches'] : [],
+      reimbursementPolicy: value.reimbursementPolicy && typeof value.reimbursementPolicy === 'object' && (value.reimbursementPolicy as { mode?: unknown }).mode === 'batch'
+        ? value.reimbursementPolicy as ReimbursementSnapshot['reimbursementPolicy']
+        : { mode: 'legacy' },
+    }
   } catch {
-    return []
+    return { records: [], reimbursementBatches: [], reimbursementPolicy: { mode: 'legacy' } }
   }
 }
 
-export function saveRecords(records: OvertimeRecord[]): void {
+export function saveRecords(records: OvertimeRecord[], storage: Storage = window.localStorage): void {
+  const current = loadReimbursementSnapshot(storage)
+  saveReimbursementSnapshot({ records, reimbursementBatches: current.reimbursementBatches, reimbursementPolicy: current.reimbursementPolicy }, storage)
+}
+
+export function saveReimbursementSnapshot(snapshot: ReimbursementSnapshot, storage: Storage = window.localStorage): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
+    storage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch {
     // 浏览器禁用存储时仍保留当前页面状态，不阻塞录入流程。
   }

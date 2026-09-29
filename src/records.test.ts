@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecordSummary, buildYearBreakdown, filterRecords, filterRecordsByPeriod, formatCurrency, formatUnpaidReimbursementLabel, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, listUnpaidReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sortUnpaidReimbursements, sumCompTimeDays, sumPendingReimbursementAmount, summarizeReimbursementTiming, TAXI_PROVIDER_OPTIONS } from './records'
+import { buildRecordSummary, buildYearBreakdown, filterRecords, filterRecordsByPeriod, formatCurrency, formatUnpaidReimbursementLabel, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, isWeekendDate, listCompTimeEntries, listUnpaidReimbursements, paginateRecords, normalizeRecord, REIMBURSEMENT_STATUS_OPTIONS, sortUnpaidReimbursements, sumCompTimeDays, sumPendingReimbursementAmount, summarizeReimbursementTiming, summarizeReimbursementBatches, TAXI_PROVIDER_OPTIONS } from './records'
 import type { OvertimeRecord } from './types'
 
 describe('record data', () => {
@@ -91,6 +91,10 @@ describe('record data', () => {
       reimbursementStatus: 'paid',
       reimbursementPaidAt: '2026-01-30',
     })
+  })
+
+  it('preserves a valid batch association when normalizing records', () => {
+    expect(normalizeRecord({ id: 'batched', date: '2026-01-01', tookTaxi: true, taxiCost: 30, reimbursementBatchId: 'batch-1', note: '' })?.reimbursementBatchId).toBe('batch-1')
   })
 
   it('finds submitted reimbursements that have not arrived and calculates waiting days', () => {
@@ -267,6 +271,24 @@ describe('record data', () => {
 
     // 没有样本时给 null，避免页面显示 NaN 天。
     expect(summarizeReimbursementTiming(records)).toEqual({ average: null, longest: null, sampleSize: 0 })
+  })
+
+  it('measures new batch timing from submission to payment and keeps legacy timing unchanged', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'batch-record', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementBatchId: 'batch-1', note: '' },
+      { id: 'legacy-record', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-05', note: '' },
+    ]
+    const batches = [{ id: 'batch-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', recordIds: ['batch-record'], expectedAmount: 30, submittedAt: '2026-09-01', actualPaidAmount: 30, paidAt: '2026-09-10', status: 'paid' as const }]
+    expect(summarizeReimbursementTiming(records, undefined, batches)).toEqual({ average: 6.5, longest: 9, sampleSize: 2 })
+  })
+
+  it('summarizes batch expected, actual and difference amounts once per batch', () => {
+    const records: OvertimeRecord[] = [
+      { id: 'a', date: '2026-08-01', tookTaxi: true, taxiCost: 30, reimbursementBatchId: 'batch-1', note: '' },
+      { id: 'b', date: '2026-08-02', tookTaxi: true, taxiCost: 20, reimbursementBatchId: 'batch-1', note: '' },
+    ]
+    const batches = [{ id: 'batch-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', recordIds: ['a', 'b'], expectedAmount: 50, actualPaidAmount: 49.5, paidAt: '2026-09-10', status: 'paid' as const, reconciliation: 'short_paid' as const }]
+    expect(summarizeReimbursementBatches(records, batches)).toEqual([{ id: 'batch-1', recordCount: 2, expectedAmount: 50, actualPaidAmount: 49.5, difference: -0.5, status: 'paid', reconciliation: 'short_paid' }])
   })
 
   it('ignores paid records whose paid date precedes the overtime date', () => {

@@ -1,11 +1,11 @@
-import type { OvertimeRecord } from './types'
+import type { OvertimeRecord, ReimbursementBatch, ReimbursementPolicy, ReimbursementSnapshot } from './types'
 import { normalizeRecord } from './records'
 
 export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json'
 export const DEFAULT_LOCAL_DATA_URL = `${import.meta.env.BASE_URL}data/overtime-records.json`
 
 type FetchImpl = typeof fetch
-export type RemoteRecordsSnapshot = { records: OvertimeRecord[]; version: number }
+export type RemoteRecordsSnapshot = { records: OvertimeRecord[]; version: number; reimbursementBatches?: ReimbursementBatch[]; reimbursementPolicy?: ReimbursementPolicy }
 export type RemoteSaveResult = { sha: string; version: number }
 
 export async function loadLocalRecords(localUrl = DEFAULT_LOCAL_DATA_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
@@ -62,6 +62,10 @@ export function pickFresherSnapshot(local: RemoteRecordsSnapshot, remote: Remote
 }
 
 export async function saveRemoteRecords(records: OvertimeRecord[], token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL, expectedVersion?: number): Promise<RemoteSaveResult> {
+  return saveRemoteSnapshot({ records, reimbursementBatches: [], reimbursementPolicy: { mode: 'legacy' } }, token, fetchImpl, remoteUrl, expectedVersion)
+}
+
+export async function saveRemoteSnapshot(snapshot: ReimbursementSnapshot, token: string, fetchImpl: FetchImpl = fetch, remoteUrl = DEFAULT_REMOTE_URL, expectedVersion?: number): Promise<RemoteSaveResult> {
   if (!token.trim()) throw new Error('请输入 GitHub Token')
   const apiUrl = toContentsApiUrl(remoteUrl)
   const headers = {
@@ -81,10 +85,13 @@ export async function saveRemoteRecords(records: OvertimeRecord[], token: string
     throw new Error(`GitHub 数据版本冲突：远程为 v${currentVersion}，本地为 v${expectedVersion}，请先读取最新数据后再保存`)
   }
   const nextVersion = currentVersion + 1
+  const payload = snapshot.reimbursementBatches.length > 0 || snapshot.reimbursementPolicy.mode === 'batch'
+    ? { version: nextVersion, ...snapshot }
+    : { version: nextVersion, records: snapshot.records }
   const response = await fetchImpl(apiUrl, {
     method: 'PUT',
     headers,
-    body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify({ version: nextVersion, records }, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
+    body: JSON.stringify({ message: 'chore: 更新加班记录', content: encodeBase64(JSON.stringify(payload, null, 2)), branch: 'main', ...(sha ? { sha } : {}) }),
   })
   if (response.status === 401) throw new Error('GitHub Token 无效')
   if (response.status === 403) throw new Error(`GitHub 拒绝写入：${await githubMessage(response)}`)
@@ -101,7 +108,11 @@ function parseRecordsSnapshot(data: unknown, source: string): RemoteRecordsSnaps
   if (data && typeof data === 'object' && Array.isArray((data as { records?: unknown }).records)) {
     const version = (data as { version?: unknown }).version
     if (version !== undefined && (!Number.isInteger(version) || (version as number) < 1)) throw new Error(`${source} JSON 版本号无效`)
-    return { records: normalizeRecords((data as { records: unknown[] }).records), version: typeof version === 'number' ? version : 1 }
+    const value = data as { records: unknown[]; reimbursementBatches?: unknown; reimbursementPolicy?: unknown }
+    const snapshot: RemoteRecordsSnapshot = { records: normalizeRecords(value.records), version: typeof version === 'number' ? version : 1 }
+    if (Array.isArray(value.reimbursementBatches)) snapshot.reimbursementBatches = value.reimbursementBatches as ReimbursementBatch[]
+    if (value.reimbursementPolicy && typeof value.reimbursementPolicy === 'object' && (value.reimbursementPolicy as { mode?: unknown }).mode === 'batch') snapshot.reimbursementPolicy = value.reimbursementPolicy as ReimbursementPolicy
+    return snapshot
   }
   throw new Error(`${source} JSON 格式无效`)
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteRecords } from './remote'
-import type { OvertimeRecord } from './types'
+import { DEFAULT_REMOTE_URL, loadLocalRecords, loadRemoteRecords, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteRecords, saveRemoteSnapshot } from './remote'
+import type { OvertimeRecord, ReimbursementSnapshot } from './types'
 
 const records: OvertimeRecord[] = [{ id: '1', date: '2026-08-08', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', note: '测试' }]
 
@@ -41,6 +41,18 @@ describe('GitHub remote JSON storage', () => {
     expect(snapshot).toEqual({ version: 7, records: [{ ...records[0], taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted' }] })
   })
 
+  it('preserves batch metadata when loading a new remote snapshot', async () => {
+    const data: ReimbursementSnapshot & { version: number } = {
+      version: 8,
+      records,
+      reimbursementBatches: [{ id: 'batch-1', periodStart: '2026-09-24', periodEnd: '2026-11-05', recordIds: ['1'], expectedAmount: 0, status: 'draft' }],
+      reimbursementPolicy: { mode: 'batch', nextClaimDate: '2026-11-05' },
+    }
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify(data)), encoding: 'base64' }))
+    expect(snapshot.reimbursementBatches).toHaveLength(1)
+    expect(snapshot.reimbursementPolicy).toEqual(data.reimbursementPolicy)
+  })
+
   it('sends the stored GitHub token when reading remote JSON', async () => {
     let authorization: string | null = null
     await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
@@ -78,6 +90,18 @@ describe('GitHub remote JSON storage', () => {
     const body = JSON.parse(await requests[1].text())
     expect(body.sha).toBe('current-sha')
     expect(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body.content), (character) => character.charCodeAt(0))))).toEqual({ version: 2, records })
+  })
+
+  it('saves batch metadata in the GitHub snapshot', async () => {
+    const requests: Request[] = []
+    const snapshot: ReimbursementSnapshot = { records, reimbursementBatches: [], reimbursementPolicy: { mode: 'batch', nextClaimDate: '2026-11-05' } }
+    await saveRemoteSnapshot(snapshot, 'token', async (input, init) => {
+      requests.push(new Request(input, init))
+      if (requests.length === 1) return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 2, records })) })
+      return Response.json({ content: { sha: 'new-sha' } })
+    }, DEFAULT_REMOTE_URL, 2)
+    const body = JSON.parse(await requests[1].text())
+    expect(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body.content), (character) => character.charCodeAt(0)))).reimbursementPolicy).toEqual(snapshot.reimbursementPolicy)
   })
 
   it('rejects a save when the remote version changed after the last load', async () => {

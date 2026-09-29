@@ -2,22 +2,23 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { CalendarCheck2, CarFront, ChevronLeft, ChevronRight, Edit3, Inbox, Trash2, X } from 'lucide-react'
 import { filterRecords, filterRecordsByPeriod, formatCurrency, formatUnpaidReimbursementLabel, getCompTimeDays, getPendingReimbursements, getRejectedReimbursements, listUnpaidReimbursements, NORMAL_REIMBURSEMENT_WINDOW_DAYS, paginateRecords, REIMBURSEMENT_STATUS_OPTIONS, reimbursementStatusLabel, sumPendingReimbursementAmount, taxiProviderLabel } from '../records'
 import { localDateKey } from '../overtime'
-import type { OvertimeRecord, ReimbursementStatus } from '../types'
+import type { OvertimeRecord, ReimbursementBatch, ReimbursementStatus } from '../types'
 import { Modal } from './Modal'
 import { PendingReimbursementList } from './PendingReimbursementList'
 
-type RecordListProps = { records: OvertimeRecord[]; period: string; periodLabel: string; embedded?: boolean; showHeading?: boolean; onEdit: (record: OvertimeRecord) => void; onDelete: (record: OvertimeRecord) => void }
+type RecordListProps = { records: OvertimeRecord[]; batches?: ReimbursementBatch[]; period: string; periodLabel: string; embedded?: boolean; showHeading?: boolean; onEdit: (record: OvertimeRecord) => void; onDelete: (record: OvertimeRecord) => void }
 
 const PAGE_SIZE = 8
 const pad = (value: number) => String(value).padStart(2, '0')
 const dateFormatter = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
 
-export const RecordList = memo(function RecordList({ records, period, periodLabel, embedded = false, showHeading = true, onEdit, onDelete }: RecordListProps) {
+export const RecordList = memo(function RecordList({ records, batches = [], period, periodLabel, embedded = false, showHeading = true, onEdit, onDelete }: RecordListProps) {
   const [page, setPage] = useState(1)
   const [isPendingDetailsOpen, setIsPendingDetailsOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<ReimbursementStatus | 'all'>('all')
   const [keyword, setKeyword] = useState('')
   const today = localDateKey()
+  const batchByRecordId = useMemo(() => new Map(batches.flatMap((batch) => batch.recordIds.map((id) => [id, batch] as const))), [batches])
 
   const periodRecords = useMemo(() => filterRecordsByPeriod(records, period), [period, records])
   const filteredRecords = useMemo(() => filterRecords(periodRecords, { status: statusFilter, keyword }), [keyword, periodRecords, statusFilter])
@@ -87,6 +88,10 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
           <div className="record-list">
             {visibleRecords.map((record) => (
               <article className="record-row" key={record.id}>
+                {(() => {
+                  const batch = batchByRecordId.get(record.id)
+                  const batchLabel = batch?.status === 'paid' ? '批次已到账' : batch?.status === 'submitted' ? '已纳入申报' : batch?.status === 'draft' ? '批次草稿' : batch?.status === 'rejected' ? '批次被驳回' : ''
+                  return <>
                 <div className="record-date">
                   <strong>{new Date(`${record.date}T00:00:00`).getDate().toString().padStart(2, '0')}</strong>
                   <span>{dateFormatter.format(new Date(`${record.date}T00:00:00`)).replace(/^\d+月/, '')}</span>
@@ -97,6 +102,7 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
                     {getCompTimeDays(record) > 0 && <span className="record-badge record-badge--comp-time">调休 {getCompTimeDays(record)} 天</span>}
                     <span className="record-badge">{record.tookTaxi ? taxiProviderLabel(record) : '自行回家'}</span>
                     {record.tookTaxi && <span className={`record-status record-status--${record.reimbursementStatus || 'unsubmitted'}`}>{reimbursementStatusLabel(record.reimbursementStatus)}</span>}
+                    {batchLabel && <span className="record-status record-status--submitted">{batchLabel}</span>}
                   </div>
                   <div className="record-meta">
                     <span>加班日</span>
@@ -108,6 +114,8 @@ export const RecordList = memo(function RecordList({ records, period, periodLabe
                   <button className="icon-button" onClick={() => onEdit(record)} aria-label="编辑记录" title="编辑记录"><Edit3 size={16} /></button>
                   <button className="icon-button icon-button--danger" onClick={() => onDelete(record)} aria-label="删除记录" title="删除记录"><Trash2 size={16} /></button>
                 </div>
+                  </>
+                })()}
               </article>
             ))}
           </div>

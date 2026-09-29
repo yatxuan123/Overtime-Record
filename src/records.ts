@@ -1,6 +1,6 @@
 import { DEFAULT_HOLIDAY_TABLES, type HolidayTables } from './holidays'
 import { localDateKey } from './overtime'
-import type { OvertimeRecord, ReimbursementStatus, TaxiProvider } from './types'
+import type { OvertimeRecord, ReimbursementBatch, ReimbursementStatus, TaxiProvider } from './types'
 
 export const TAXI_PROVIDER_OPTIONS: ReadonlyArray<{ value: Exclude<TaxiProvider, ''>; label: string }> = [
   { value: 'taxi', label: '的士' },
@@ -33,6 +33,7 @@ export type MonthBreakdown = { month: number; days: number; compDays: number; ta
 export type YearBreakdown = { months: MonthBreakdown[]; days: number; compDays: number; taxiCost: number; pendingCost: number }
 
 export type ReimbursementTiming = { average: number | null; longest: number | null; sampleSize: number }
+export type ReimbursementBatchSummary = { id: string; recordCount: number; expectedAmount: number; actualPaidAmount: number | null; difference: number | null; status: ReimbursementBatch['status']; reconciliation: ReimbursementBatch['reconciliation'] | null }
 
 export type UnpaidReimbursement = { record: OvertimeRecord; status: ReimbursementStatus; waitingDays: number | null }
 
@@ -128,14 +129,35 @@ export function buildYearBreakdown(records: OvertimeRecord[], year: string, tabl
 }
 
 // 统计「加班日 → 到账日」隔了多久。缺到账日或日期倒挂的记录不计入，避免把脏数据算成负天数。
-export function summarizeReimbursementTiming(records: OvertimeRecord[], period?: string): ReimbursementTiming {
-  const cycles = records
+export function summarizeReimbursementTiming(records: OvertimeRecord[], period?: string, batches: ReimbursementBatch[] = []): ReimbursementTiming {
+  const legacyCycles = records
     .filter((record) => record.tookTaxi && record.reimbursementStatus === 'paid' && (!period || record.date.startsWith(period)))
+    .filter((record) => !record.reimbursementBatchId)
     .map((record) => isDateKey(record.reimbursementPaidAt) ? signedDifferenceInDays(record.date, record.reimbursementPaidAt) : -1)
     .filter((days) => days >= 0)
+  const recordById = new Map(records.map((record) => [record.id, record]))
+  const batchCycles = batches
+    .filter((batch) => batch.status === 'paid' && batch.submittedAt && isDateKey(batch.paidAt))
+    .filter((batch) => !period || batch.recordIds.some((id) => recordById.get(id)?.date.startsWith(period)))
+    .map((batch) => signedDifferenceInDays(batch.submittedAt as string, batch.paidAt as string))
+    .filter((days) => days >= 0)
+  const cycles = [...legacyCycles, ...batchCycles]
   if (cycles.length === 0) return { average: null, longest: null, sampleSize: 0 }
   const total = cycles.reduce((sum, days) => sum + days, 0)
   return { average: Math.round((total / cycles.length) * 10) / 10, longest: Math.max(...cycles), sampleSize: cycles.length }
+}
+
+export function summarizeReimbursementBatches(records: OvertimeRecord[], batches: ReimbursementBatch[]): ReimbursementBatchSummary[] {
+  const recordIds = new Set(records.map((record) => record.id))
+  return batches.map((batch) => ({
+    id: batch.id,
+    recordCount: batch.recordIds.filter((id) => recordIds.has(id)).length,
+    expectedAmount: batch.expectedAmount,
+    actualPaidAmount: batch.actualPaidAmount ?? null,
+    difference: batch.actualPaidAmount === undefined ? null : batch.actualPaidAmount - batch.expectedAmount,
+    status: batch.status,
+    reconciliation: batch.reconciliation ?? null,
+  }))
 }
 
 // 按报销状态与关键字筛选。状态筛选只对「打了车」的记录有意义，关键字匹配备注、打车方式与日期。
@@ -239,6 +261,7 @@ export function normalizeRecord(value: unknown): OvertimeRecord | null {
     reimbursementStatus,
     note: record.note,
   }
+  if (typeof record.reimbursementBatchId === 'string' && record.reimbursementBatchId.trim()) normalized.reimbursementBatchId = record.reimbursementBatchId
   if (reimbursementStatus === 'paid' && isDateKey(record.reimbursementPaidAt)) normalized.reimbursementPaidAt = record.reimbursementPaidAt
   return normalized
 }

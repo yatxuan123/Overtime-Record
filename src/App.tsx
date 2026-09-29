@@ -5,14 +5,15 @@ import { RecordList } from './components/RecordList'
 import { SummaryCards } from './components/SummaryCards'
 import { MonthOverview } from './components/MonthOverview'
 import { RemoteControl } from './components/RemoteControl'
+import { ReimbursementPanel } from './components/ReimbursementPanel'
 import { SummaryDetailModal } from './components/SummaryDetailModal'
 import { Modal } from './components/Modal'
 import { ConfirmDialog } from './components/ConfirmDialog'
-import { loadRecords, loadRemoteToken, loadRemoteVersion, saveRecords, saveRemoteVersion } from './storage'
-import type { OvertimeRecord, RecordFormValue } from './types'
+import { loadReimbursementSnapshot, loadRemoteToken, loadRemoteVersion, saveReimbursementSnapshot, saveRemoteVersion } from './storage'
+import type { OvertimeRecord, RecordFormValue, ReimbursementBatch, ReimbursementPolicy } from './types'
 import { buildRecordSummary, formatCurrency, sumCompTimeDays, sumPendingReimbursementAmount } from './records'
 import { createRecordId, findRecordByDate, localDateKey } from './overtime'
-import { DEFAULT_REMOTE_URL, loadLocalRecordsSnapshot, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteRecords } from './remote'
+import { DEFAULT_REMOTE_URL, loadLocalRecordsSnapshot, loadRemoteRecordsSnapshot, pickFresherSnapshot, saveRemoteSnapshot } from './remote'
 import type { RemoteRecordsSnapshot } from './remote'
 import { closedRecordModalState } from './modalState'
 import { downloadTextFile, recordsToCsv, recordsToJson } from './export'
@@ -45,7 +46,10 @@ function validateForm(form: RecordFormValue): string[] {
 }
 
 function App() {
-  const [records, setRecords] = useState<OvertimeRecord[]>(loadRecords)
+  const initialSnapshot = useMemo(() => loadReimbursementSnapshot(), [])
+  const [records, setRecords] = useState<OvertimeRecord[]>(initialSnapshot.records)
+  const [reimbursementBatches, setReimbursementBatches] = useState<ReimbursementBatch[]>(initialSnapshot.reimbursementBatches)
+  const [reimbursementPolicy, setReimbursementPolicy] = useState<ReimbursementPolicy>(initialSnapshot.reimbursementPolicy)
   const [remoteMessage, setRemoteMessage] = useState('')
   const [form, setForm] = useState<RecordFormValue>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -62,7 +66,7 @@ function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const remoteVersionRef = useRef(loadRemoteVersion(window.sessionStorage) ?? 1)
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const pendingSyncRef = useRef<{ records: OvertimeRecord[]; token: string } | null>(null)
+  const pendingSyncRef = useRef<{ records: OvertimeRecord[]; reimbursementBatches: ReimbursementBatch[]; reimbursementPolicy: ReimbursementPolicy; token: string } | null>(null)
   const syncTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -74,7 +78,9 @@ function App() {
       remoteVersionRef.current = snapshot.version
       saveRemoteVersion(window.sessionStorage, snapshot.version)
       setRecords(snapshot.records)
-      saveRecords(snapshot.records)
+      setReimbursementBatches(snapshot.reimbursementBatches ?? [])
+      setReimbursementPolicy(snapshot.reimbursementPolicy ?? { mode: 'legacy' })
+      saveReimbursementSnapshot({ records: snapshot.records, reimbursementBatches: snapshot.reimbursementBatches ?? [], reimbursementPolicy: snapshot.reimbursementPolicy ?? { mode: 'legacy' } })
       setRemoteMessage(message)
       if (messageTimer !== null) window.clearTimeout(messageTimer)
       messageTimer = window.setTimeout(() => { setRemoteMessage(''); messageTimer = null }, 2200)
@@ -125,9 +131,9 @@ function App() {
     noticeTimerRef.current = window.setTimeout(() => { setNotice(null); noticeTimerRef.current = null }, 3200)
   }, [])
 
-  const enqueueRemoteSave = useCallback((nextRecords: OvertimeRecord[], token: string): Promise<void> => {
+  const enqueueRemoteSave = useCallback((nextSnapshot: { records: OvertimeRecord[]; reimbursementBatches: ReimbursementBatch[]; reimbursementPolicy: ReimbursementPolicy }, token: string): Promise<void> => {
     const task = remoteSaveQueueRef.current.then(async () => {
-      const result = await saveRemoteRecords(nextRecords, token, fetch, DEFAULT_REMOTE_URL, remoteVersionRef.current)
+      const result = await saveRemoteSnapshot(nextSnapshot, token, fetch, DEFAULT_REMOTE_URL, remoteVersionRef.current)
       remoteVersionRef.current = result.version
       saveRemoteVersion(window.sessionStorage, result.version)
       setRemoteMessage(`已实时保存到 GitHub（v${result.version}）`)
@@ -143,7 +149,7 @@ function App() {
     const pending = pendingSyncRef.current
     if (!pending) return
     pendingSyncRef.current = null
-    void enqueueRemoteSave(pending.records, pending.token).catch((error) => {
+    void enqueueRemoteSave({ records: pending.records, reimbursementBatches: pending.reimbursementBatches, reimbursementPolicy: pending.reimbursementPolicy }, pending.token).catch((error) => {
       const message = error instanceof Error ? error.message : '实时保存失败'
       setRemoteMessage(message)
       showNotice(`本地已保存，但 GitHub 保存失败：${message}`, 'error')
@@ -155,8 +161,8 @@ function App() {
     if (syncTimerRef.current !== null) { window.clearTimeout(syncTimerRef.current); syncTimerRef.current = null }
   }, [])
 
-  const scheduleRemoteSave = useCallback((nextRecords: OvertimeRecord[], token: string) => {
-    pendingSyncRef.current = { records: nextRecords, token }
+  const scheduleRemoteSave = useCallback((snapshot: { records: OvertimeRecord[]; reimbursementBatches: ReimbursementBatch[]; reimbursementPolicy: ReimbursementPolicy }, token: string) => {
+    pendingSyncRef.current = { ...snapshot, token }
     if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current)
     syncTimerRef.current = window.setTimeout(flushRemoteSave, AUTO_SYNC_DELAY_MS)
   }, [flushRemoteSave])
@@ -168,15 +174,19 @@ function App() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [flushRemoteSave])
 
-  const updateRecords = useCallback((next: OvertimeRecord[]) => {
+  const updateSnapshot = useCallback((next: OvertimeRecord[], nextBatches: ReimbursementBatch[], nextPolicy: ReimbursementPolicy) => {
     setRecords(next)
-    saveRecords(next)
+    setReimbursementBatches(nextBatches)
+    setReimbursementPolicy(nextPolicy)
+    saveReimbursementSnapshot({ records: next, reimbursementBatches: nextBatches, reimbursementPolicy: nextPolicy })
     const token = loadRemoteToken()
     if (token) {
       showNotice('已保存到本地，稍后同步 GitHub…', 'pending')
-      scheduleRemoteSave(next, token)
+      scheduleRemoteSave({ records: next, reimbursementBatches: nextBatches, reimbursementPolicy: nextPolicy }, token)
     } else showNotice('已保存到本地，未同步 GitHub：尚未配置 Token', 'warning')
   }, [scheduleRemoteSave, showNotice])
+
+  const updateRecords = useCallback((next: OvertimeRecord[]) => updateSnapshot(next, reimbursementBatches, reimbursementPolicy), [reimbursementBatches, reimbursementPolicy, updateSnapshot])
 
   const updateForm = useCallback((next: Partial<RecordFormValue>) => { setForm((current) => ({ ...current, ...next })); setError('') }, [])
   const closeRecordsModal = useCallback(() => { setIsRecordsModalOpen(false); setEditingId(null); setForm(emptyForm()); setError(''); setPendingOverwrite(null) }, [])
@@ -190,7 +200,8 @@ function App() {
     const errors = validateForm(form)
     if (errors.length > 0) return setError(errors.join('；'))
     const taxiCost = form.tookTaxi ? Number(form.taxiCost || 0) : 0
-    const record: OvertimeRecord = { id: editingId ?? createRecordId(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', note: form.note.trim() }
+    const existing = editingId ? records.find((item) => item.id === editingId) : undefined
+    const record: OvertimeRecord = { id: editingId ?? createRecordId(), date: form.date, tookTaxi: form.tookTaxi, taxiCost, taxiProvider: form.tookTaxi ? form.taxiProvider : '', taxiProviderOther: form.tookTaxi && form.taxiProvider === 'other' ? form.taxiProviderOther.trim() : '', reimbursementStatus: form.reimbursementStatus, reimbursementPaidAt: form.tookTaxi && form.reimbursementStatus === 'paid' ? form.reimbursementPaidAt : '', reimbursementBatchId: existing?.reimbursementBatchId, note: form.note.trim() }
     const duplicate = !editingId ? findRecordByDate(records, record.date) : undefined
     if (duplicate) return setPendingOverwrite(record)
     if (editingId) {
@@ -205,7 +216,7 @@ function App() {
     }
   }
 
-  const handleEdit = useCallback((record: OvertimeRecord) => { setSummaryDetail(null); setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementStatus === 'paid' ? (record.reimbursementPaidAt || localDateKey()) : '', note: record.note }); setIsRecordsModalOpen(true) }, [])
+  const handleEdit = useCallback((record: OvertimeRecord) => { if (record.reimbursementBatchId) { showNotice('已纳入报销批次的记录请在批次中处理', 'warning'); return } setSummaryDetail(null); setIsDetailsModalOpen(false); setEditingId(record.id); setForm({ date: record.date, tookTaxi: record.tookTaxi, taxiCost: record.tookTaxi ? String(record.taxiCost) : '', taxiProvider: record.tookTaxi ? record.taxiProvider || 'taxi' : '', taxiProviderOther: record.taxiProviderOther || '', reimbursementStatus: record.reimbursementStatus || 'unsubmitted', reimbursementPaidAt: record.reimbursementStatus === 'paid' ? (record.reimbursementPaidAt || localDateKey()) : '', note: record.note }); setIsRecordsModalOpen(true) }, [showNotice])
   const handleSummaryEdit = useCallback((record: OvertimeRecord) => handleEdit(record), [handleEdit])
   const handleCalendarDateSelect = useCallback((date: string, record?: OvertimeRecord) => {
     if (record) return handleEdit(record)
@@ -231,27 +242,27 @@ function App() {
     const stamp = localDateKey()
     const count = sortedRecords.length
     if (format === 'csv') {
-      downloadTextFile(`加班记录-${stamp}.csv`, 'text/csv;charset=utf-8', recordsToCsv(sortedRecords))
+      downloadTextFile(`加班记录-${stamp}.csv`, 'text/csv;charset=utf-8', recordsToCsv(sortedRecords, reimbursementBatches))
       showNotice(`已导出 ${count} 条记录为 CSV`, 'success')
       return
     }
-    downloadTextFile(`加班记录-${stamp}.json`, 'application/json', recordsToJson(sortedRecords))
+    downloadTextFile(`加班记录-${stamp}.json`, 'application/json', recordsToJson(sortedRecords, new Date().toISOString(), reimbursementBatches))
     showNotice(`已导出 ${count} 条记录为 JSON`, 'success')
-  }, [showNotice, sortedRecords])
+  }, [reimbursementBatches, showNotice, sortedRecords])
 
   const loadRemote = useCallback(() => loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, fetch, loadRemoteToken()), [])
-  const handleRemoteLoaded = useCallback((snapshot: { records: OvertimeRecord[]; version: number }) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); saveRecords(snapshot.records); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
+  const handleRemoteLoaded = useCallback((snapshot: RemoteRecordsSnapshot) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); setReimbursementBatches(snapshot.reimbursementBatches ?? []); setReimbursementPolicy(snapshot.reimbursementPolicy ?? { mode: 'legacy' }); saveReimbursementSnapshot({ records: snapshot.records, reimbursementBatches: snapshot.reimbursementBatches ?? [], reimbursementPolicy: snapshot.reimbursementPolicy ?? { mode: 'legacy' } }); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
   const saveRemote = useCallback(async (token: string) => {
     cancelScheduledSync()
     showNotice('正在保存到 GitHub…', 'pending')
     try {
-      await enqueueRemoteSave(records, token)
+      await enqueueRemoteSave({ records, reimbursementBatches, reimbursementPolicy }, token)
     } catch (error) {
       const message = error instanceof Error ? error.message : '保存失败'
       showNotice(`GitHub 保存失败：${message}`, 'error')
       throw error
     }
-  }, [cancelScheduledSync, enqueueRemoteSave, records, showNotice])
+  }, [cancelScheduledSync, enqueueRemoteSave, records, reimbursementBatches, reimbursementPolicy, showNotice])
 
   return <div className="app-shell">
     <div className="background-grid" />
@@ -280,7 +291,8 @@ function App() {
       </section>
 
       <SummaryCards {...summary} allPendingCost={allPendingCost} totalCompTimeDays={totalCompTimeDays} periodLabel={overviewMode === 'year' ? '本年' : '本月'} isLoading={isInitialLoading} onPendingClick={openPendingDetail} onCompTimeClick={openCompTimeDetail} />
-      <MonthOverview records={records} selectedMonth={selectedMonth} mode={overviewMode} onMonthChange={setSelectedMonth} onModeChange={setOverviewMode} onDateSelect={handleCalendarDateSelect} />
+      <ReimbursementPanel records={records} batches={reimbursementBatches} policy={reimbursementPolicy} onUpdate={updateSnapshot} />
+      <MonthOverview records={records} batches={reimbursementBatches} selectedMonth={selectedMonth} mode={overviewMode} onMonthChange={setSelectedMonth} onModeChange={setOverviewMode} onDateSelect={handleCalendarDateSelect} />
 
       {isRecordsModalOpen && <Modal onClose={closeRecordsModal} backdropClassName="records-modal-backdrop" panelClassName="records-modal records-modal--form" labelledBy="records-modal-title">
         <header className="records-modal__header">
@@ -302,7 +314,7 @@ function App() {
           </div>
         </header>
         <div className="records-modal__body records-modal__body--details">
-          <RecordList records={sortedRecords} period={selectedPeriod} periodLabel={periodLabel} embedded showHeading={false} onEdit={handleEdit} onDelete={handleDelete} />
+          <RecordList records={sortedRecords} batches={reimbursementBatches} period={selectedPeriod} periodLabel={periodLabel} embedded showHeading={false} onEdit={handleEdit} onDelete={handleDelete} />
         </div>
       </Modal>}
 

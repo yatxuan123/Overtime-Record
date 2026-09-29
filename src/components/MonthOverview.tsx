@@ -2,13 +2,13 @@ import { memo, useMemo, useState } from 'react'
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 import { buildYearBreakdown, formatCurrency, getCompTimeDays, reimbursementStatusLabel, sumCompTimeDays, summarizeReimbursementTiming } from '../records'
 import { localDateKey } from '../overtime'
-import type { OvertimeRecord } from '../types'
+import type { OvertimeRecord, ReimbursementBatch } from '../types'
 
-type MonthOverviewProps = { records: OvertimeRecord[]; selectedMonth: string; mode: 'month' | 'year'; onMonthChange: (month: string) => void; onModeChange: (mode: 'month' | 'year') => void; onDateSelect: (date: string, record?: OvertimeRecord) => void }
+type MonthOverviewProps = { records: OvertimeRecord[]; batches?: ReimbursementBatch[]; selectedMonth: string; mode: 'month' | 'year'; onMonthChange: (month: string) => void; onModeChange: (mode: 'month' | 'year') => void; onDateSelect: (date: string, record?: OvertimeRecord) => void }
 const weekdays = ['一', '二', '三', '四', '五', '六', '日']
 const pad = (value: number) => String(value).padStart(2, '0')
 
-export const MonthOverview = memo(function MonthOverview({ records, selectedMonth, mode, onMonthChange, onModeChange, onDateSelect }: MonthOverviewProps) {
+export const MonthOverview = memo(function MonthOverview({ records, batches = [], selectedMonth, mode, onMonthChange, onModeChange, onDateSelect }: MonthOverviewProps) {
   const [displayMode, setDisplayMode] = useState<'indicators' | 'text'>('indicators')
   const now = selectedMonth ? new Date(`${selectedMonth}-01T12:00:00`) : new Date()
   const year = now.getFullYear()
@@ -29,7 +29,7 @@ export const MonthOverview = memo(function MonthOverview({ records, selectedMont
 
   const yearView = useMemo(() => buildYearBreakdown(records, yearKey), [records, yearKey])
   // 到账时效按加班日期归属的年份筛选，与年视图其他数字口径一致。
-  const reimbursementTiming = useMemo(() => summarizeReimbursementTiming(records, yearKey), [records, yearKey])
+  const reimbursementTiming = useMemo(() => summarizeReimbursementTiming(records, yearKey, batches), [batches, records, yearKey])
 
   const compTimeTotal = sumCompTimeDays(records, periodKey)
   const shiftPeriod = (offset: number) => { const next = new Date(year + (mode === 'year' ? offset : 0), month + (mode === 'year' ? 0 : offset), 1); onMonthChange(`${next.getFullYear()}-${pad(next.getMonth() + 1)}`) }

@@ -5,7 +5,7 @@ import type { OvertimeRecord } from './types'
 const BOM = String.fromCharCode(0xfeff)
 
 const records: OvertimeRecord[] = [
-  { id: 'b', date: '2026-08-02', tookTaxi: true, taxiCost: 40, taxiProvider: 'other', taxiProviderOther: '顺风车,拼车', reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', note: '含"引号"的备注' },
+  { id: 'b', date: '2026-08-02', tookTaxi: true, taxiCost: 40, taxiProvider: 'other', taxiProviderOther: '顺风车,拼车', reimbursementStatus: 'paid', reimbursementPaidAt: '2026-08-10', reimbursementBatchId: 'batch-1', note: '含"引号"的备注' },
   { id: 'a', date: '2026-08-01', tookTaxi: false, taxiCost: 0, taxiProvider: '', taxiProviderOther: '', reimbursementStatus: 'unsubmitted', note: '' },
 ]
 
@@ -26,5 +26,15 @@ describe('records export', () => {
 
     expect(json.exportedAt).toBe('2026-09-23T00:00:00.000Z')
     expect(json.records.map((record) => record.id)).toEqual(['a', 'b'])
+  })
+
+  it('exports batch reconciliation columns when batches are provided', () => {
+    const batches = [{ id: 'batch-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', recordIds: ['b'], expectedAmount: 40, actualPaidAmount: 39.5, submittedAt: '2026-09-01', paidAt: '2026-09-10', status: 'paid' as const, reconciliation: 'short_paid' as const }]
+    const csv = recordsToCsv(records, batches)
+    expect(csv).toContain('批次编号')
+    expect(csv).toContain('batch-1')
+    expect(csv).toContain('39.5')
+    const json = JSON.parse(recordsToJson(records, '2026-09-23T00:00:00.000Z', batches)) as { reimbursementBatches: typeof batches }
+    expect(json.reimbursementBatches).toEqual(batches)
   })
 })
