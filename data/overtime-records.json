@@ -1,5 +1,5 @@
 {
-  "version": 42,
+  "version": 43,
   "records": [
     {
       "id": "0a11de21-3e13-4a58-9b79-e535401d635a",
@@ -19,8 +19,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "5b831f78-09a5-49f4-b9fe-06d824beb672",
@@ -40,8 +40,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "6b25e641-c676-4990-9c97-81f51663a083",
@@ -51,8 +51,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "bc981a5f-51e4-49ae-9482-450a89cd0a94",
@@ -62,8 +62,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "669b290d-1743-4e56-b05f-b2bc805ce819",
@@ -73,8 +73,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "ec0a51e4-bf3a-4969-9dd4-8dcd0eac4f4e",
@@ -84,8 +84,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "52a949e3-7fd1-471d-b325-090347cc5f7b",
@@ -95,8 +95,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "f91c8691-c216-481b-99be-c6f8ebf8b5cc",
@@ -106,8 +106,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "56a5237b-6bed-44ee-a1b3-2ec270b06ecd",
@@ -117,8 +117,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "paid",
-      "reimbursementPaidAt": "2026-09-28",
-      "note": ""
+      "note": "",
+      "reimbursementPaidAt": "2026-09-28"
     },
     {
       "id": "8c6d7da6-3c10-47e0-8a3e-d20c6f9f4816",
@@ -225,5 +225,11 @@
       "note": "的士",
       "reimbursementPaidAt": "2026-08-08"
     }
-  ]
+  ],
+  "reimbursementBatches": [],
+  "reimbursementPolicy": {
+    "mode": "batch",
+    "lastClaimDate": "2026-09-23",
+    "nextClaimDate": "2026-11-05"
+  }
 }
