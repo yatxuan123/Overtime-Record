@@ -40,6 +40,11 @@ export function submitReimbursementBatch(batch: ReimbursementBatch, submittedAt 
   return { ...batch, status: 'submitted', submittedAt }
 }
 
+export function deleteReimbursementBatch(batch: ReimbursementBatch): ReimbursementBatch {
+  if (batch.status !== 'draft') throw new Error('只有草稿批次可以删除')
+  return batch
+}
+
 export function settleReimbursementBatch(batch: ReimbursementBatch, actualPaidAmount: number, paidAt = localDateKey()): ReimbursementBatch {
   if (batch.status !== 'submitted') throw new Error('只有已申报批次可以登记到账')
   if (!Number.isFinite(actualPaidAmount) || actualPaidAmount < 0) throw new Error('实际到账金额无效')

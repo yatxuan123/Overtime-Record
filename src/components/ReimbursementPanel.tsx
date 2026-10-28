@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarClock, CheckCircle2, FileCheck2, WalletCards } from 'lucide-react'
 import { formatCurrency } from '../records'
-import { createReimbursementBatch, getEligibleReimbursementRecords, getNextReimbursementPeriod, settleReimbursementBatch, submitReimbursementBatch } from '../reimbursement'
+import { createReimbursementBatch, deleteReimbursementBatch, getEligibleReimbursementRecords, getNextReimbursementPeriod, settleReimbursementBatch, submitReimbursementBatch } from '../reimbursement'
 import { localDateKey } from '../overtime'
 import type { OvertimeRecord, ReimbursementBatch, ReimbursementPolicy } from '../types'
 
@@ -17,6 +17,7 @@ export function ReimbursementPanel({ records, batches, policy, onUpdate }: Reimb
   const [lastClaimDate, setLastClaimDate] = useState(policy.lastClaimDate ?? '')
   const [paidAmounts, setPaidAmounts] = useState<Record<string, string>>({})
   const [paidDates, setPaidDates] = useState<Record<string, string>>({})
+  const [confirmDeleteId, setConfirmDeleteId] = useState('')
   const [error, setError] = useState('')
   const period = useMemo(() => policy.nextClaimDate ? getNextReimbursementPeriod(batches, policy.nextClaimDate, policy.lastClaimDate) : null, [batches, policy.lastClaimDate, policy.nextClaimDate])
   const eligible = useMemo(() => period ? getEligibleReimbursementRecords(records, batches, period) : [], [batches, period, records])
@@ -42,6 +43,16 @@ export function ReimbursementPanel({ records, batches, policy, onUpdate }: Reimb
       onUpdate(nextRecords, batches.map((item) => item.id === batch.id ? submitted : item), policy)
       setError('')
     } catch (cause) { setError(cause instanceof Error ? cause.message : '批次提交失败') }
+  }
+
+  const deleteBatch = (batch: ReimbursementBatch) => {
+    try {
+      deleteReimbursementBatch(batch)
+      const nextRecords = records.map((record) => batch.recordIds.includes(record.id) ? { ...record, reimbursementBatchId: undefined } : record)
+      onUpdate(nextRecords, batches.filter((item) => item.id !== batch.id), policy)
+      setConfirmDeleteId('')
+      setError('')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '批次删除失败') }
   }
 
   const settleBatch = (batch: ReimbursementBatch) => {
@@ -78,7 +89,15 @@ export function ReimbursementPanel({ records, batches, policy, onUpdate }: Reimb
       {batches.length === 0 ? <p className="reimbursement-panel__empty">还没有报销批次</p> : batches.slice().reverse().map((batch) => <article className="reimbursement-batch" key={batch.id}>
         <div className="reimbursement-batch__title"><strong>{batch.periodStart} 至 {batch.periodEnd}</strong><span>{batch.status === 'draft' ? '待提交' : batch.status === 'submitted' ? '已申报待到账' : batch.status === 'paid' ? '已到账' : '被驳回'}</span></div>
         <div className="reimbursement-batch__meta"><span>{batch.recordIds.length} 笔</span><span>预计 ¥{formatCurrency(batch.expectedAmount)}</span>{batch.actualPaidAmount !== undefined && <span>实际 ¥{formatCurrency(batch.actualPaidAmount)}</span>}{batch.actualPaidAmount !== undefined && <span>差额 ¥{formatCurrency(batch.actualPaidAmount - batch.expectedAmount)}</span>}</div>
-        {batch.status === 'draft' && <button className="secondary-button" type="button" onClick={() => submitBatch(batch)}><CheckCircle2 size={15} />提交本批次</button>}
+        {batch.status === 'draft' && <div className="reimbursement-batch__actions">
+          <button className="secondary-button" type="button" onClick={() => submitBatch(batch)}><CheckCircle2 size={15} />提交本批次</button>
+          {confirmDeleteId === batch.id
+            ? <>
+              <button className="secondary-button" type="button" onClick={() => deleteBatch(batch)}>确认删除</button>
+              <button className="secondary-button" type="button" onClick={() => setConfirmDeleteId('')}>取消</button>
+            </>
+            : <button className="secondary-button" type="button" onClick={() => setConfirmDeleteId(batch.id)}>删除草稿</button>}
+        </div>}
         {batch.status === 'submitted' && <div className="reimbursement-batch__settle"><label><span>实际到账金额</span><input type="number" min="0" step="0.01" value={paidAmounts[batch.id] ?? ''} onChange={(event) => setPaidAmounts((current) => ({ ...current, [batch.id]: event.target.value }))} /></label><label><span>到账日期</span><input type="date" min={batch.submittedAt} value={paidDates[batch.id] ?? ''} onChange={(event) => setPaidDates((current) => ({ ...current, [batch.id]: event.target.value }))} /></label><button className="secondary-button" type="button" onClick={() => settleBatch(batch)}><WalletCards size={15} />登记本批次到账</button></div>}
         {batch.status === 'paid' && <small>核对结果：{batch.reconciliation === 'matched' ? '金额一致' : batch.reconciliation === 'short_paid' ? '少到账' : batch.reconciliation === 'overpaid' ? '多到账' : '待核对'}</small>}
       </article>)}

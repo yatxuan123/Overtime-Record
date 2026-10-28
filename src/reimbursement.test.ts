@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createReimbursementBatch, getEligibleReimbursementRecords, getNextReimbursementPeriod, getReconciliationStatus, settleReimbursementBatch, submitReimbursementBatch } from './reimbursement'
+import { createReimbursementBatch, deleteReimbursementBatch, getEligibleReimbursementRecords, getNextReimbursementPeriod, getReconciliationStatus, settleReimbursementBatch, submitReimbursementBatch } from './reimbursement'
 import type { OvertimeRecord, ReimbursementBatch } from './types'
 
 const record = (id: string, date: string, taxiCost: number, extra: Partial<OvertimeRecord> = {}): OvertimeRecord => ({ id, date, tookTaxi: true, taxiCost, taxiProvider: 'didi', reimbursementStatus: 'unsubmitted', note: '', ...extra })
@@ -37,6 +37,16 @@ describe('reimbursement batches', () => {
     expect(getReconciliationStatus(100, 99.5)).toBe('short_paid')
     expect(getReconciliationStatus(100, 100.5)).toBe('overpaid')
     expect(getReconciliationStatus(0.1 + 0.2, 0.3)).toBe('matched')
+  })
+
+  it('deletes a draft batch so its records can be re-batched', () => {
+    const batch: ReimbursementBatch = { id: 'draft', periodStart: '2026-09-23', periodEnd: '2026-11-05', recordIds: ['a', 'b'], expectedAmount: 239.5, status: 'draft' }
+    expect(deleteReimbursementBatch(batch)).toBe(batch)
+  })
+
+  it('refuses to delete a batch that is not a draft', () => {
+    const batch: ReimbursementBatch = { id: 'batch', periodStart: '2026-09-24', periodEnd: '2026-11-05', recordIds: ['a'], expectedAmount: 100, status: 'submitted', submittedAt: '2026-11-06' }
+    expect(() => deleteReimbursementBatch(batch)).toThrow('只有草稿批次可以删除')
   })
 
   it('settles a submitted batch once with the actual paid amount', () => {

@@ -20,5 +20,14 @@ describe('ReimbursementPanel', () => {
     const markup = renderToStaticMarkup(<ReimbursementPanel records={records} batches={[batch]} policy={policy} onUpdate={() => undefined} />)
     expect(markup).toContain('已申报待到账')
     expect(markup).toContain('登记本批次到账')
+    expect(markup).not.toContain('删除草稿')
+  })
+
+  it('offers delete for a draft batch but not the confirm step', () => {
+    const batch: ReimbursementBatch = { id: 'batch-1', periodStart: '2026-09-24', periodEnd: '2026-11-05', recordIds: ['taxi-1'], expectedAmount: 120, status: 'draft' }
+    const markup = renderToStaticMarkup(<ReimbursementPanel records={records} batches={[batch]} policy={policy} onUpdate={() => undefined} />)
+    expect(markup).toContain('待提交')
+    expect(markup).toContain('删除草稿')
+    expect(markup).not.toContain('确认删除')
   })
 })
