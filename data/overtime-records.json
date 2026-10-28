@@ -1,5 +1,5 @@
 {
-  "version": 51,
+  "version": 52,
   "records": [
     {
       "id": "ecef89e8-49db-4016-aea7-2cd352c04504",
@@ -254,7 +254,7 @@
   ],
   "reimbursementPolicy": {
     "mode": "batch",
-    "lastClaimDate": "2026-09-22",
+    "lastClaimDate": "2026-09-24",
     "nextClaimDate": "2026-09-30"
   }
 }
