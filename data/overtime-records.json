@@ -1,5 +1,5 @@
 {
-  "version": 45,
+  "version": 46,
   "records": [
     {
       "id": "ecef89e8-49db-4016-aea7-2cd352c04504",
@@ -9,8 +9,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "unsubmitted",
-      "reimbursementPaidAt": "",
-      "note": ""
+      "note": "",
+      "reimbursementBatchId": "36471efa-97ce-4b97-ab09-5ed397a71346"
     },
     {
       "id": "0a11de21-3e13-4a58-9b79-e535401d635a",
@@ -20,7 +20,8 @@
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "unsubmitted",
-      "note": ""
+      "note": "",
+      "reimbursementBatchId": "36471efa-97ce-4b97-ab09-5ed397a71346"
     },
     {
       "id": "d5ed76f0-f53b-424f-be8d-6abbd71cf810",
@@ -237,7 +238,20 @@
       "reimbursementPaidAt": "2026-08-08"
     }
   ],
-  "reimbursementBatches": [],
+  "reimbursementBatches": [
+    {
+      "id": "36471efa-97ce-4b97-ab09-5ed397a71346",
+      "periodStart": "2026-09-23",
+      "periodEnd": "2026-11-05",
+      "recordIds": [
+        "0a11de21-3e13-4a58-9b79-e535401d635a",
+        "ecef89e8-49db-4016-aea7-2cd352c04504"
+      ],
+      "expectedAmount": 239.5,
+      "status": "draft",
+      "note": "创建于 2026-10-28"
+    }
+  ],
   "reimbursementPolicy": {
     "mode": "batch",
     "lastClaimDate": "2026-09-23",
