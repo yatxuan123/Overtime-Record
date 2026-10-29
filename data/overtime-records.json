@@ -1,11 +1,11 @@
 {
-  "version": 60,
+  "version": 61,
   "records": [
     {
       "id": "a5448161-f754-4a81-8a43-ce41dd764f20",
       "date": "2026-10-29",
       "tookTaxi": true,
-      "taxiCost": 0,
+      "taxiCost": 112.6,
       "taxiProvider": "didi",
       "taxiProviderOther": "",
       "reimbursementStatus": "unsubmitted",
