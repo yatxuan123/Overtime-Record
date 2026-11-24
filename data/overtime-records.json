@@ -1,6 +1,17 @@
 {
-  "version": 65,
+  "version": 66,
   "records": [
+    {
+      "id": "e878f4a9-1342-4d1e-be9c-a87905e54547",
+      "date": "2026-11-24",
+      "tookTaxi": false,
+      "taxiCost": 0,
+      "taxiProvider": "",
+      "taxiProviderOther": "",
+      "reimbursementStatus": "unsubmitted",
+      "reimbursementPaidAt": "",
+      "note": ""
+    },
     {
       "id": "a5448161-f754-4a81-8a43-ce41dd764f20",
       "date": "2026-10-29",
