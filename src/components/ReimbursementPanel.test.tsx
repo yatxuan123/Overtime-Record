@@ -23,6 +23,12 @@ describe('ReimbursementPanel', () => {
     expect(markup).not.toContain('删除草稿')
   })
 
+  it('renders the claim dates from the policy', () => {
+    const markup = renderToStaticMarkup(<ReimbursementPanel records={records} batches={[]} policy={policy} onUpdate={() => undefined} />)
+    expect(markup).toContain('value="2026-09-23"')
+    expect(markup).toContain('value="2026-11-05"')
+  })
+
   it('offers delete for a draft batch but not the confirm step', () => {
     const batch: ReimbursementBatch = { id: 'batch-1', periodStart: '2026-09-24', periodEnd: '2026-11-05', recordIds: ['taxi-1'], expectedAmount: 120, status: 'draft' }
     const markup = renderToStaticMarkup(<ReimbursementPanel records={records} batches={[batch]} policy={policy} onUpdate={() => undefined} />)

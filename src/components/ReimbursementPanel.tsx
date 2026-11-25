@@ -13,8 +13,14 @@ type ReimbursementPanelProps = {
 }
 
 export function ReimbursementPanel({ records, batches, policy, onUpdate }: ReimbursementPanelProps) {
-  const [nextClaimDate, setNextClaimDate] = useState(policy.nextClaimDate ?? '')
-  const [lastClaimDate, setLastClaimDate] = useState(policy.lastClaimDate ?? '')
+  // 用户没编辑过时直接跟随 policy：启动自动同步可能在挂载后才填上申报日期，
+  // 用 useState 初始化会让输入框一直停留在空值。一旦用户开始编辑就保留草稿，直到保存成功。
+  const [dateDraft, setDateDraft] = useState<{ lastClaimDate: string; nextClaimDate: string } | null>(null)
+  const lastClaimDate = dateDraft?.lastClaimDate ?? policy.lastClaimDate ?? ''
+  const nextClaimDate = dateDraft?.nextClaimDate ?? policy.nextClaimDate ?? ''
+  const updateDraftDate = (key: 'lastClaimDate' | 'nextClaimDate', value: string) => {
+    setDateDraft({ lastClaimDate, nextClaimDate, [key]: value })
+  }
   const [paidAmounts, setPaidAmounts] = useState<Record<string, string>>({})
   const [paidDates, setPaidDates] = useState<Record<string, string>>({})
   const [confirmDeleteId, setConfirmDeleteId] = useState('')
@@ -27,6 +33,7 @@ export function ReimbursementPanel({ records, batches, policy, onUpdate }: Reimb
     if (!nextClaimDate || (lastClaimDate && nextClaimDate <= lastClaimDate)) return setError('下一次申报日必须晚于上次申报日')
     setError('')
     onUpdate(records, batches, { mode: 'batch', lastClaimDate: lastClaimDate || undefined, nextClaimDate })
+    setDateDraft(null)
   }
 
   const createBatch = () => {
@@ -73,8 +80,8 @@ export function ReimbursementPanel({ records, batches, policy, onUpdate }: Reimb
     </div>
 
     <div className="reimbursement-panel__settings">
-      <label><span>上次申报日</span><input type="date" value={lastClaimDate} onChange={(event) => setLastClaimDate(event.target.value)} /></label>
-      <label><span>下一次申报日</span><input type="date" value={nextClaimDate} onChange={(event) => setNextClaimDate(event.target.value)} /></label>
+      <label><span>上次申报日</span><input type="date" value={lastClaimDate} onChange={(event) => updateDraftDate('lastClaimDate', event.target.value)} /></label>
+      <label><span>下一次申报日</span><input type="date" value={nextClaimDate} onChange={(event) => updateDraftDate('nextClaimDate', event.target.value)} /></label>
       <button className="secondary-button" type="button" onClick={savePolicy}>保存申报周期</button>
     </div>
 

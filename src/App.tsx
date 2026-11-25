@@ -308,8 +308,8 @@ function App() {
         <header className="records-modal__header">
           <h2 id="details-modal-title">{periodLabel}加班明细</h2>
           <div className="records-modal__header-actions">
-            <button className="secondary-button" type="button" onClick={() => exportAll('csv')}><FileDown size={15} />导出 CSV</button>
-            <button className="secondary-button" type="button" onClick={() => exportAll('json')}><FileDown size={15} />导出 JSON</button>
+            <button className="secondary-button" type="button" onClick={() => exportAll('csv')} aria-label="导出 CSV" title="导出 CSV"><FileDown size={15} /><span>导出 CSV</span></button>
+            <button className="secondary-button" type="button" onClick={() => exportAll('json')} aria-label="导出 JSON" title="导出 JSON"><FileDown size={15} /><span>导出 JSON</span></button>
             <button className="icon-button" type="button" onClick={closeDetailsModal} aria-label="关闭加班明细" title="关闭"><X size={20} /></button>
           </div>
         </header>
