@@ -1,5 +1,5 @@
 {
-  "version": 66,
+  "version": 67,
   "records": [
     {
       "id": "e878f4a9-1342-4d1e-be9c-a87905e54547",
@@ -9,7 +9,6 @@
       "taxiProvider": "",
       "taxiProviderOther": "",
       "reimbursementStatus": "unsubmitted",
-      "reimbursementPaidAt": "",
       "note": ""
     },
     {
@@ -19,8 +18,9 @@
       "taxiCost": 112.6,
       "taxiProvider": "didi",
       "taxiProviderOther": "",
-      "reimbursementStatus": "unsubmitted",
-      "note": ""
+      "reimbursementStatus": "submitted",
+      "note": "",
+      "reimbursementBatchId": "7dbf288e-d92b-48e9-9a51-1296e8712bd8"
     },
     {
       "id": "ecef89e8-49db-4016-aea7-2cd352c04504",
@@ -277,11 +277,23 @@
       "actualPaidAmount": 239.5,
       "paidAt": "2026-11-02",
       "reconciliation": "matched"
+    },
+    {
+      "id": "7dbf288e-d92b-48e9-9a51-1296e8712bd8",
+      "periodStart": "2026-10-28",
+      "periodEnd": "2026-11-25",
+      "recordIds": [
+        "a5448161-f754-4a81-8a43-ce41dd764f20"
+      ],
+      "expectedAmount": 112.6,
+      "status": "submitted",
+      "note": "创建于 2026-11-25",
+      "submittedAt": "2026-11-25"
     }
   ],
   "reimbursementPolicy": {
     "mode": "batch",
     "lastClaimDate": "2026-10-28",
-    "nextClaimDate": "2026-11-28"
+    "nextClaimDate": "2026-11-25"
   }
 }
