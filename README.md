@@ -68,7 +68,7 @@ pnpm run dev
 https://raw.githubusercontent.com/yatxuan123/Overtime-Record/main/data/overtime-records.json
 ```
 
-读取这份 JSON 不带认证信息：如果该仓库是 public，任何人都能读到你的加班日期与打车费用。**页面每次加载都会自动拉取这份 JSON**（见「部署」一节），所以仓库转成 private 之后，未认证的读取会失败并回退到构建快照。
+读取默认不带认证信息：如果该仓库是 public，任何人都能读到你的加班日期与打车费用。**页面每次加载都会自动拉取这份 JSON**（见「部署」一节）。只有匿名读取被 GitHub 拒绝（无权限、限流或私有仓库）时，才会用本机保存的 Token 重试，并在页面上提示已改用 Token；两份都失败才报错。仓库转成 private 后，未配置 Token 的浏览器会读取失败并回退到构建快照。
 
 保存数据需要一个具备目标仓库 `Contents: Read and write` 权限的 GitHub Personal Access Token。**Token 保存在浏览器的 localStorage 里，关闭页面后仍然保留** —— 这是个静态站点，任何注入脚本都能读到它。建议把 Token 权限限制到这个仓库，并在「配置 Token」弹窗里用「清除 Token」收回。
 

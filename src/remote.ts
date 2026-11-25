@@ -5,8 +5,11 @@ export const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/yatxuan123/
 export const DEFAULT_LOCAL_DATA_URL = `${import.meta.env.BASE_URL}data/overtime-records.json`
 
 type FetchImpl = typeof fetch
-export type RemoteRecordsSnapshot = { records: OvertimeRecord[]; version: number; reimbursementBatches?: ReimbursementBatch[]; reimbursementPolicy?: ReimbursementPolicy }
+export type RemoteRecordsSnapshot = { records: OvertimeRecord[]; version: number; reimbursementBatches?: ReimbursementBatch[]; reimbursementPolicy?: ReimbursementPolicy; usedTokenFallback?: boolean }
 export type RemoteSaveResult = { sha: string; version: number }
+
+// 匿名读取被拒时才值得改用 Token 重试：401/403 是权限或限流，404 是私有仓库匿名不可见。
+const TOKEN_FALLBACK_STATUSES: ReadonlySet<number> = new Set([401, 403, 404])
 
 export async function loadLocalRecords(localUrl = DEFAULT_LOCAL_DATA_URL, fetchImpl: FetchImpl = fetch): Promise<OvertimeRecord[]> {
   const snapshot = await loadLocalRecordsSnapshot(localUrl, fetchImpl)
@@ -28,25 +31,40 @@ export async function loadRemoteRecords(remoteUrl = DEFAULT_REMOTE_URL, fetchImp
 /**
  * 通过 GitHub Contents API 读取远程 JSON。
  *
- * 不能用 raw.githubusercontent.com：那条链路的 CDN（Fastly）按路径缓存 5 分钟且忽略 query，
- * 追加 `?v=` 只能绕浏览器缓存、绕不过 CDN —— 刚保存完立刻读取会拿到旧版本。Contents API 未认证时
- * 只缓存 60 秒，带上 Token 后是私有响应、不经共享缓存，和保存时的版本校验走同一来源，读到的即最新。
+ * 读取始终先匿名：公开仓库不需要 Token，也避免失效的 Token 把读取整体卡死。
+ * 只有匿名请求被拒（401/403/404）且本地存有 Token 时才用 Token 重试，
+ * 并用 usedTokenFallback 告知调用方这次是降级读取。
+ *
+ * 不能用 raw.githubusercontent.com：那条链路的 CDN（Fastly）按路径缓存 5 分钟且忽略 query。
+ * Contents API 未认证时仍会被共享缓存 60 秒，所以地址上追加时间戳参数绕开缓存，
+ * 保证读到的是保存后的最新版本。
  */
 export async function loadRemoteRecordsSnapshot(remoteUrl = DEFAULT_REMOTE_URL, fetchImpl: FetchImpl = fetch, token = ''): Promise<RemoteRecordsSnapshot> {
   const trimmedToken = token.trim()
-  const response = await fetchImpl(toContentsApiUrl(remoteUrl), {
+  const anonymous = await fetchSnapshotResponse(remoteUrl, fetchImpl, '')
+  if (!trimmedToken || anonymous.ok || !TOKEN_FALLBACK_STATUSES.has(anonymous.status)) return readSnapshotResponse(anonymous, false)
+  const authorized = await fetchSnapshotResponse(remoteUrl, fetchImpl, trimmedToken)
+  return readSnapshotResponse(authorized, true)
+}
+
+function fetchSnapshotResponse(remoteUrl: string, fetchImpl: FetchImpl, token: string): Promise<Response> {
+  return fetchImpl(toContentsApiUrl(remoteUrl), {
     cache: 'no-store',
     headers: {
       Accept: 'application/vnd.github+json',
-      ...(trimmedToken ? { Authorization: `Bearer ${trimmedToken}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
+}
+
+async function readSnapshotResponse(response: Response, usedTokenFallback: boolean): Promise<RemoteRecordsSnapshot> {
   if (response.status === 404) return { records: [], version: 0 }
   if (response.status === 401) throw new Error('GitHub Token 无效')
   if (response.status === 403) throw new Error(`GitHub 拒绝读取：${await githubMessage(response)}`)
   if (!response.ok) throw new Error(`远程数据读取失败（HTTP ${response.status}）`)
   const data: unknown = await response.json()
-  return parseContentsResponse(data)
+  const snapshot = parseContentsResponse(data)
+  return usedTokenFallback ? { ...snapshot, usedTokenFallback: true } : snapshot
 }
 
 /**
@@ -147,7 +165,8 @@ function toContentsApiUrl(remoteUrl: string): string {
   if (!match) throw new Error('远程地址必须是 raw.githubusercontent.com 的 JSON 地址')
   const [, owner, repo, branch, filePath] = match
   const encodedPath = filePath.split('/').map(encodeURIComponent).join('/')
-  return `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`
+  // `_` 是时间戳缓存击穿参数：Contents API 的未认证响应会被 CDN 缓存 60 秒，换一个地址才会拿最新内容。
+  return `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}&_=${Date.now()}`
 }
 
 function encodeBase64(value: string): string {

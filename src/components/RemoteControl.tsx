@@ -1,4 +1,4 @@
-import { Download, GitCommit, KeyRound, Save, Trash2, X } from 'lucide-react'
+import { Copy, Download, Eye, EyeOff, GitCommit, KeyRound, Save, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { DEFAULT_REMOTE_URL, type RemoteRecordsSnapshot } from '../remote'
 import { loadRemoteToken, saveRemoteToken } from '../storage'
@@ -22,7 +22,19 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
 
   const applyLoaded = (snapshot: RemoteRecordsSnapshot) => {
     onLoaded(snapshot)
-    setMessage(`已读取 ${snapshot.records.length} 条记录（v${snapshot.version}）`)
+    const fallbackHint = snapshot.usedTokenFallback ? ' · 匿名读取无权限，已改用 Token' : ''
+    setMessage(`已读取 ${snapshot.records.length} 条记录（v${snapshot.version}）${fallbackHint}`)
+  }
+
+  const copyToken = async () => {
+    const trimmed = token.trim()
+    if (!trimmed) return
+    try {
+      await navigator.clipboard.writeText(trimmed)
+      setMessage('Token 已复制到剪贴板')
+    } catch {
+      setMessage('复制失败，请手动选中复制')
+    }
   }
 
   const load = async () => {
@@ -87,7 +99,10 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
       <p className="sync-modal__message">{isConfiguring
         ? '配置后，新增、编辑和删除记录会自动同步到 GitHub。Token 会保存在本机浏览器里，关闭页面后仍然保留 —— 这是静态站点，任何注入脚本都能读到它，所以请把 Token 的权限限制到这个仓库的 Contents 读写，共用电脑上用完请清除。'
         : `将把 ${records.length} 条记录提交到 data/overtime-records.json，并先校验远程版本。`}</p>
-      <label className="sync-field"><span>Fine-grained GitHub Token</span><input type="password" value={token} onChange={(event) => setToken(event.target.value)} placeholder="粘贴 Token" autoComplete="off" /></label>
+      <div className="sync-field">
+        <label htmlFor="github-token">Fine-grained GitHub Token</label>
+        <TokenSecretField value={token} onChange={setToken} onCopy={() => void copyToken()} />
+      </div>
       <div className="sync-actions">
         {isConfiguring && token.trim() && <button className="secondary-button" type="button" onClick={clearToken}><Trash2 size={15} />清除 Token</button>}
         <button className="secondary-button" type="button" onClick={() => setOpenMode(null)}>取消</button>
@@ -105,4 +120,15 @@ export function RemoteControl({ records, onLoad, onLoaded, onSave }: RemoteContr
       onCancel={() => { setPendingSnapshot(null); setMessage('已取消覆盖，本地记录未变') }}
     />}
   </>
+}
+
+export function TokenSecretField({ value, onChange, onCopy }: { value: string; onChange: (value: string) => void; onCopy: () => void }) {
+  const [isVisible, setIsVisible] = useState(false)
+  return <div className="sync-secret">
+    <input id="github-token" type={isVisible ? 'text' : 'password'} value={value} onChange={(event) => onChange(event.target.value)} placeholder="粘贴 Token" autoComplete="off" />
+    <div className="sync-secret__buttons">
+      <button className="sync-secret__button" type="button" onClick={() => setIsVisible((visible) => !visible)} aria-label={isVisible ? '隐藏 Token' : '显示 Token'} title={isVisible ? '隐藏 Token' : '显示 Token'}>{isVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+      <button className="sync-secret__button" type="button" onClick={onCopy} disabled={!value.trim()} aria-label="复制 Token" title="复制 Token"><Copy size={16} /></button>
+    </div>
+  </div>
 }

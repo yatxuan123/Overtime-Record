@@ -53,13 +53,55 @@ describe('GitHub remote JSON storage', () => {
     expect(snapshot.reimbursementPolicy).toEqual(data.reimbursementPolicy)
   })
 
-  it('sends the stored GitHub token when reading remote JSON', async () => {
-    let authorization: string | null = null
-    await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
-      authorization = new Request(input, init).headers.get('authorization')
-      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 1, records })), encoding: 'base64' })
+  it('reads anonymously before considering the stored token', async () => {
+    const authorizations: Array<string | null> = []
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
+      authorizations.push(new Request(input, init).headers.get('authorization'))
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 3, records })), encoding: 'base64' })
     }, 'secret-token')
-    expect(authorization).toBe('Bearer secret-token')
+    expect(authorizations).toEqual([null])
+    expect(snapshot.version).toBe(3)
+    expect(snapshot.usedTokenFallback).toBeUndefined()
+  })
+
+  it('falls back to the stored token when the anonymous read is rejected', async () => {
+    const authorizations: Array<string | null> = []
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
+      const authorization = new Request(input, init).headers.get('authorization')
+      authorizations.push(authorization)
+      if (!authorization) return Response.json({ message: 'Bad credentials' }, { status: 401 })
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 4, records })), encoding: 'base64' })
+    }, 'secret-token')
+    expect(authorizations).toEqual([null, 'Bearer secret-token'])
+    expect(snapshot.version).toBe(4)
+    expect(snapshot.usedTokenFallback).toBe(true)
+  })
+
+  it('falls back to the stored token when the anonymous read cannot see a private file', async () => {
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input, init) => {
+      if (!new Request(input, init).headers.get('authorization')) return new Response(null, { status: 404 })
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 5, records })), encoding: 'base64' })
+    }, 'secret-token')
+    expect(snapshot.version).toBe(5)
+    expect(snapshot.usedTokenFallback).toBe(true)
+  })
+
+  it('reports the token error when the fallback read is rejected too', async () => {
+    await expect(loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => Response.json({ message: 'Bad credentials' }, { status: 401 }), 'expired-token')).rejects.toThrow('GitHub Token 无效')
+  })
+
+  it('does not fall back when no token is stored', async () => {
+    const snapshot = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async () => new Response(null, { status: 404 }))
+    expect(snapshot).toEqual({ records: [], version: 0 })
+  })
+
+  it('bypasses cached GitHub CDN responses with a cache-busting query', async () => {
+    let requestedUrl = ''
+    await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, async (input) => {
+      requestedUrl = String(input)
+      return Response.json({ sha: 'current-sha', content: encodeContent(JSON.stringify({ version: 1, records })), encoding: 'base64' })
+    })
+    expect(new URL(requestedUrl).searchParams.has('_')).toBe(true)
   })
 
   it('returns an empty snapshot when the remote file does not exist yet', async () => {

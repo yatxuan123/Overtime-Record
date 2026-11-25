@@ -104,7 +104,7 @@ function App() {
         const remote = await loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, fetch, loadRemoteToken())
         if (cancelled) return
         if (pickFresherSnapshot(local ?? { records: [], version: 0 }, remote) === remote) {
-          applyStartupSnapshot(remote, `已自动同步 GitHub 最新数据（v${remote.version}）`)
+          applyStartupSnapshot(remote, `已自动同步 GitHub 最新数据（v${remote.version}）${remote.usedTokenFallback ? '，匿名读取无权限，已改用 Token' : ''}`)
         }
       } catch {
         // 保持快照即可，不打扰用户。
@@ -251,7 +251,7 @@ function App() {
   }, [reimbursementBatches, showNotice, sortedRecords])
 
   const loadRemote = useCallback(() => loadRemoteRecordsSnapshot(DEFAULT_REMOTE_URL, fetch, loadRemoteToken()), [])
-  const handleRemoteLoaded = useCallback((snapshot: RemoteRecordsSnapshot) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); setReimbursementBatches(snapshot.reimbursementBatches ?? []); setReimbursementPolicy(snapshot.reimbursementPolicy ?? { mode: 'legacy' }); saveReimbursementSnapshot({ records: snapshot.records, reimbursementBatches: snapshot.reimbursementBatches ?? [], reimbursementPolicy: snapshot.reimbursementPolicy ?? { mode: 'legacy' } }); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
+  const handleRemoteLoaded = useCallback((snapshot: RemoteRecordsSnapshot) => { remoteVersionRef.current = snapshot.version; saveRemoteVersion(window.sessionStorage, snapshot.version); setRecords(snapshot.records); setReimbursementBatches(snapshot.reimbursementBatches ?? []); setReimbursementPolicy(snapshot.reimbursementPolicy ?? { mode: 'legacy' }); saveReimbursementSnapshot({ records: snapshot.records, reimbursementBatches: snapshot.reimbursementBatches ?? [], reimbursementPolicy: snapshot.reimbursementPolicy ?? { mode: 'legacy' } }); setRemoteMessage(`已读取 ${snapshot.records.length} 条 GitHub 记录（v${snapshot.version}）${snapshot.usedTokenFallback ? '，匿名读取无权限，已改用 Token' : ''}`); window.setTimeout(() => setRemoteMessage(''), 2200) }, [])
   const saveRemote = useCallback(async (token: string) => {
     cancelScheduledSync()
     showNotice('正在保存到 GitHub…', 'pending')
